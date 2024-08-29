@@ -4,7 +4,9 @@ namespace App\Models\Admin;
 
 use App\Models\Admin\Shop;
 use Illuminate\Support\Str;
+use App\Models\Admin\Carrier;
 use App\Models\Admin\Currency;
+use App\Models\Admin\Delivery;
 use Spatie\MediaLibrary\HasMedia;
 use App\Models\Admin\BrandProduct;
 use App\Models\Admin\CategoryProduct;

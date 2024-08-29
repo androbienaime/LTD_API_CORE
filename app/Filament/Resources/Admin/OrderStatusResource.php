@@ -17,7 +17,7 @@ class OrderStatusResource extends Resource
 {
     protected static ?string $model = OrderStatus::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-arrow-path';
+    // protected static ?string $navigationIcon = 'heroicon-o-arrow-path';
 
     public static function getNavigationGroup() : string {
         return __("Orders");
@@ -92,9 +92,7 @@ class OrderStatusResource extends Resource
     {
         return [
             'index' => Pages\ListOrderStatuses::route('/'),
-            'create' => Pages\CreateOrderStatus::route('/create'),
             'view' => Pages\ViewOrderStatus::route('/{record}'),
-            'edit' => Pages\EditOrderStatus::route('/{record}/edit'),
         ];
     }
 }

@@ -2,21 +2,22 @@
 
 namespace App\Providers\Filament;
 
-use Filament\Http\Middleware\Authenticate;
-use Filament\Http\Middleware\DisableBladeIconComponents;
-use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages;
 use Filament\Panel;
+use Filament\Widgets;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\Widgets;
-use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Filament\Navigation\NavigationGroup;
+use Filament\Http\Middleware\Authenticate;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Cookie\Middleware\EncryptCookies;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
-use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\Http\Middleware\DisableBladeIconComponents;
+use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -32,8 +33,33 @@ class AdminPanelProvider extends PanelProvider
                 'secondary' => "#efba20"
             ])
             ->navigationGroups([
-                "Orders"
+                NavigationGroup::make("Orders")
+                 ->label('Orders')
+                 ->icon('heroicon-o-shopping-cart')
+                 ->collapsed(),
+                NavigationGroup::make("Catalogs")
+                 ->label('Catalogs')
+                 ->icon('heroicon-o-shopping-cart'),
+                 NavigationGroup::make("Customers")
+                 ->label('Customers')
+                 ->icon('heroicon-o-users'),
+                 NavigationGroup::make("Shipping")
+                 ->label('Shipping')
+                 ->icon('heroicon-o-truck'),
+                 NavigationGroup::make("International")
+                 ->label('International')
+                 ->icon('heroicon-o-globe-americas'),
+                 NavigationGroup::make("Module")
+                 ->label('Module')
+                 ->icon('heroicon-o-plus-circle'),
+                 NavigationGroup::make("Shops")
+                 ->label('Shops')
+                 ->icon('heroicon-o-shopping-bag'),
+                 NavigationGroup::make("Settings")
+                 ->label('Settings')
+                 ->icon('heroicon-o-cog-8-tooth'),
             ])
+            ->sidebarWidth('16rem')
             ->brandLogo(fn () => view('filament.admin.logo'))
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')

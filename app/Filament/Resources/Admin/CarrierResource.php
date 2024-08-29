@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Filament\Resources;
+namespace App\Filament\Resources\Admin;
 
-use App\Filament\Resources\UserResource\Pages;
-use App\Filament\Resources\UserResource\RelationManagers;
-use App\Models\User;
+use App\Filament\Resources\Admin\CarrierResource\Pages;
+use App\Filament\Resources\Admin\CarrierResource\RelationManagers;
+use App\Models\Admin\Carrier;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,36 +13,36 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class UserResource extends Resource
+class CarrierResource extends Resource
 {
-    protected static ?string $model = User::class;
+    protected static ?string $model = Carrier::class;
 
     // protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function getNavigationGroup() : string {
-        return __("Settings");
+        return __("Shipping");
     }
-
-    public static function getNavigationLabel() : string{
-        return __("Users");
-    }
-
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('name')
+                Forms\Components\TextInput::make('carrier_name')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('email')
-                    ->email()
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\DateTimePicker::make('email_verified_at'),
-                Forms\Components\TextInput::make('password')
-                    ->password()
-                    ->required()
-                    ->maxLength(255),
+                Forms\Components\TextInput::make('transit_time')
+                    ->maxLength(255)
+                    ->default(null),
+                Forms\Components\TextInput::make('speed_grade')
+                    ->maxLength(255)
+                    ->default(null),
+                Forms\Components\TextInput::make('logo')
+                    ->maxLength(255)
+                    ->default(null),
+                Forms\Components\TextInput::make('tracking_url')
+                    ->maxLength(255)
+                    ->default(null),
+                Forms\Components\Toggle::make('free_shipping')
+                    ->required(),
             ]);
     }
 
@@ -50,13 +50,18 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                Tables\Columns\TextColumn::make('carrier_name')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('email')
+                Tables\Columns\TextColumn::make('transit_time')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('email_verified_at')
-                    ->dateTime()
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('speed_grade')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('logo')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('tracking_url')
+                    ->searchable(),
+                Tables\Columns\IconColumn::make('free_shipping')
+                    ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -90,10 +95,8 @@ class UserResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUsers::route('/'),
-            'create' => Pages\CreateUser::route('/create'),
-            'view' => Pages\ViewUser::route('/{record}'),
-            'edit' => Pages\EditUser::route('/{record}/edit'),
+            'index' => Pages\ListCarriers::route('/'),
+            'view' => Pages\ViewCarrier::route('/{record}'),
         ];
     }
 }

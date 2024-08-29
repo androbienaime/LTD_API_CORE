@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 use App\Models\Admin\Product;
 use App\Models\Admin\Delivery;
 use Filament\Resources\Resource;
+use Filament\Resources\Pages\Page;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Group;
@@ -21,6 +22,8 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Tabs\Tab;
+use Illuminate\Database\Eloquent\Model;
+use App\Core\Trait\FillTableToManyTrait;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\RichEditor;
 use Illuminate\Database\Eloquent\Builder;
@@ -29,13 +32,16 @@ use App\Filament\Resources\Admin\ProductResource\Pages;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use App\Filament\Resources\Admin\ProductResource\RelationManagers;
+use App\Filament\Resources\Admin\ProductResource\Pages\CreateProduct;
 use App\Filament\Resources\Admin\ProductResource\RelationManagers\DeclinationProductsRelationManager;
+use App\Filament\Resources\DeliveryProductRelationManagerResource\RelationManagers\DeliveryProductRelationManager;
 
 class ProductResource extends Resource
 {
+    use FillTableToManyTrait;
     protected static ?string $model = Product::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    // protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
 
     protected static ?int $navigationSort = 1;
 
@@ -66,20 +72,31 @@ class ProductResource extends Resource
 
                     Tabs::make("Tabs")
                         ->tabs([
-                            Tab::make(__("HOME"))
+                            Tab::make(__("Details"))
+                            ->icon('heroicon-o-information-circle')
                             ->schema([
                                 self::productFormHome()
                             ])
-                            ->icon("heroicon-o-home"),
+                            ->hiddenOn(DeliveryProductRelationManager::class)
+                            ->icon('heroicon-o-information-circle'),
 
                             Tab::make(__("Declination"))
                             ->schema([
                                 self::declination()
-                            ]),
+                            ])
+                            ->hiddenOn(DeliveryProductRelationManager::class)
+                            ->icon('heroicon-o-cursor-arrow-ripple'),
                             Tab::make(__("Shipping"))
                             ->schema([
-                                self::shipping()
+                               self::shipping()
+                                                        
                             ])
+                            ->icon("heroicon-o-truck"),
+                            Tab::make("SEO")
+                                ->Icon("heroicon-o-magnifying-glass")
+                                ->schema([
+                                    
+                                ])
                         ])->columnSpan("full")
                 
                 ]);
@@ -153,6 +170,7 @@ class ProductResource extends Resource
     public static function getRelations(): array
     {
         return [
+            DeliveryProductRelationManager::class,
         ];
     }
 
@@ -266,8 +284,11 @@ class ProductResource extends Resource
         return 
             Repeater::make("deliveryProducts")
                 ->relationship()
-                ->schema([  
-                                      
+                ->schema([          
+                    Grid::make("delivery_id")
+                    ->label(__("Delivery"))
+                    ->relationship("delivery", "id")
+                        ->schema([
                             TextInput::make("width")
                                 ->numeric(),
                             TextInput::make("heigth")
@@ -278,43 +299,23 @@ class ProductResource extends Resource
                                 ->numeric(),
                             TextInput::make("costs")
                                 ->numeric(),
-                            Select::make("delivery_mode")
-                                ->options([
-                                    //
-                                ])
-                       
-                
+                            Select::make("carrier_id")
+                                ->relationship(name:"carrier", titleAttribute:"carrier_name")
+                                ->getOptionLabelFromRecordUsing(fn (Model $record) => "{$record->carrier_name}")
+                                ->label(__("Carrier"))
+                                ->preload()
+                                ->searchable()
+                        ])->columns(2)
                     
-                    ->columns(2)
                 ])
+                ->grid(2)
+                ->addActionLabel(__("Add Shipping"))
+                ->minItems(0)
+                ->collapsed(false)
                 ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array{
-                      return self::saveDelivery($data);
+                   return self::processFillTable($data, Delivery::class, "delivery_id");
                 });
     }
 
-    private static function saveDelivery(array $data): array{
-        if($data['width'] || $data['heigth'] || $data['weigth'] || 
-            $data['depth'] || $data['costs']){
 
-            $delivery = Delivery::firstOrCreate(
-                ["width" => $data['width']],
-                ["heigth" => $data['heigth']],
-                ["weigth" => $data['weigth']],
-                ["depth" => $data['depth']],
-                ["costs" => $data['costs']],
-                ["delivery_mode" => $data['delivery_mode']],
-            );
-            
-            $data["delivery_id"] = $delivery->id;
-            unset($data["width"]);
-            unset($data["heigth"]);
-            unset($data["weigth"]);
-            unset($data["depth"]);
-            unset($data["costs"]);
-            unset($data["delivery_mode"]);
-        }
-
-        
-        return $data;
-    }
 }

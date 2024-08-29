@@ -17,12 +17,11 @@ class TrackingResource extends Resource
 {
     protected static ?string $model = Tracking::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    // protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function getNavigationGroup() : string {
-        return __("Deliveries");
+        return __("Shipping");
     }
-
     public static function getNavigationLabel() : string{
         return __("Trackings");
     }

@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\DeliveryResource\Pages;
 use App\Filament\Resources\DeliveryResource\RelationManagers;
-use App\Models\Delivery;
+use App\Models\Admin\Delivery;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -17,10 +17,10 @@ class DeliveryResource extends Resource
 {
     protected static ?string $model = Delivery::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    // protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function getNavigationGroup() : string {
-        return __("Deliveries");
+        return __("Shipping");
     }
 
     public static function getNavigationLabel() : string{
@@ -66,7 +66,6 @@ class DeliveryResource extends Resource
     {
         return [
             'index' => Pages\ListDeliveries::route('/'),
-            'create' => Pages\CreateDelivery::route('/create'),
             'view' => Pages\ViewDelivery::route('/{record}'),
             'edit' => Pages\EditDelivery::route('/{record}/edit'),
         ];

@@ -2,16 +2,17 @@
 
 namespace App\Models\Admin;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Admin\Carrier;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Delivery extends Model
 {
     use HasFactory;
     protected $fillable = [
         "width",
-        "height",
+        "heigth",
         "depth",
         "weigth",
         "costs",
@@ -28,5 +29,9 @@ class Delivery extends Model
 
     public function deliveryOrders() : HasMany{
         return $this->hasMany(DeliveryOrder::class);
+    }
+
+    public function carrier(){
+        return $this->belongsTo(Carrier::class);
     }
 }
