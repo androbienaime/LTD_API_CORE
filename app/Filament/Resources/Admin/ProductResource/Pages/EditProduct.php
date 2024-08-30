@@ -18,4 +18,9 @@ class EditProduct extends EditRecord
         ];
     }
 
+    protected function mutateFormDataBeforeSave(array $data) : array{
+        unset($data['categories']);
+        return $data;
+    }
+
 }

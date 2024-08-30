@@ -2,9 +2,10 @@
 
 namespace App\Models\Admin;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class DeliveryProduct extends Pivot
 {
@@ -16,5 +17,8 @@ class DeliveryProduct extends Pivot
 
     public function product() : BelongsTo{
         return $this->belongsTo(Product::class);
+    }
+    public function categories() : BelongsToMany{
+        return $this->belongsToMany(Category::class);
     }
 }

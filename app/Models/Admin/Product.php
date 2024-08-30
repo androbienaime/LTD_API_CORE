@@ -2,6 +2,8 @@
 
 namespace App\Models\Admin;
 
+use App\Models\Customer;
+use Spatie\Tags\HasTags;
 use App\Models\Admin\Shop;
 use Illuminate\Support\Str;
 use App\Models\Admin\Carrier;
@@ -9,6 +11,7 @@ use App\Models\Admin\Currency;
 use App\Models\Admin\Delivery;
 use Spatie\MediaLibrary\HasMedia;
 use App\Models\Admin\BrandProduct;
+use App\Models\Admin\CommentProduct;
 use App\Models\Admin\CategoryProduct;
 use App\Models\Admin\DeliveryProduct;
 use Illuminate\Database\Eloquent\Model;
@@ -20,13 +23,14 @@ use Spatie\MediaLibrary\MediaCollections\FileAdder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * @method void prepareToAttachMedia(Media $media, FileAdder $fileAdder)
  */
 class Product extends Model implements HasMedia
 {
-    use HasFactory, InteractsWithMedia;
+    use HasFactory, InteractsWithMedia, HasTags;
 
     protected $guarded;
 
@@ -49,6 +53,9 @@ class Product extends Model implements HasMedia
         return $this->hasMany(CategoryProduct::class);
     }
 
+    public function categories() : BelongsToMany{
+        return $this->belongsToMany(Category::class);
+    }
     public function brandProducts() : HasMany{
         return $this->hasMany(BrandProduct::class);
     }
@@ -70,7 +77,7 @@ class Product extends Model implements HasMedia
     }
 
     public function commentProducts(){
-        return $this->hasMany(Comment::class);
+        return $this->hasMany(CommentProduct::class);
     }
 
     public static function createUniqueSlug($name){

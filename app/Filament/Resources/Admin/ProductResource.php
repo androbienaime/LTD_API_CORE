@@ -27,6 +27,8 @@ use App\Core\Trait\FillTableToManyTrait;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\RichEditor;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms\Components\SpatieTagsInput;
+use CodeWithDennis\FilamentSelectTree\SelectTree;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\Admin\ProductResource\Pages;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
@@ -95,7 +97,11 @@ class ProductResource extends Resource
                             Tab::make("SEO")
                                 ->Icon("heroicon-o-magnifying-glass")
                                 ->schema([
-                                    
+                                    TextInput::make('slug')
+                                        ->live()
+                                        ->required()
+                                        ->maxLength(255),
+                                       
                                 ])
                         ])->columnSpan("full")
                 
@@ -108,6 +114,7 @@ class ProductResource extends Resource
             ->columns([
                 
                 Tables\Columns\TextColumn::make('name')
+                    ->verticallyAlignStart()
                     ->searchable(),
                 SpatieMediaLibraryImageColumn::make('product_image')
                     ->circular()
@@ -116,8 +123,11 @@ class ProductResource extends Resource
                     ->conversion('thumb'),
               
                 Tables\Columns\TextColumn::make('slug')
+                    ->verticallyAlignStart()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('description')
+                    ->verticallyAlignStart()
+                    ->limit(30)
                     ->searchable(),
                 Tables\Columns\TextColumn::make('price')
                     ->money()
@@ -246,15 +256,20 @@ class ProductResource extends Resource
                                             Select::make('currency_id')
                                                 ->label(__("Currency"))
                                                 ->relationship("currency", "currency")
+                                                ->default(1)
                                                 ->required(),
                                             TextInput::make('purchase_price')
                                                 ->numeric(),
                                         ])->columnSpan("full"),
 
-                                        TextInput::make('slug')
-                                        ->required()
-                                        ->maxLength(255),
-
+                                        SelectTree::make('categories')
+                                        ->relationship('categories', 'name', 'parent_id')
+                                            ->placeholder(__('Please select a category'))
+                                            ->emptyLabel(__('Oops, no results have been found!'))
+                                            ->saveRelationshipsUsing(function ($component, $state, $record) {
+                                                // Synchroniser les catégories dans la table pivot sans toucher à `category_id` du modèle principal
+                                                $record->categories()->sync($state);
+                                            }),
                                         Grid::make()
                                         ->schema([
                                             TextInput::make('stock_quantity')
@@ -298,6 +313,7 @@ class ProductResource extends Resource
                             TextInput::make("weigth")
                                 ->numeric(),
                             TextInput::make("costs")
+                                ->default(0)
                                 ->numeric(),
                             Select::make("carrier_id")
                                 ->relationship(name:"carrier", titleAttribute:"carrier_name")
@@ -315,6 +331,17 @@ class ProductResource extends Resource
                 ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array{
                    return self::processFillTable($data, Delivery::class, "delivery_id");
                 });
+    }
+
+    protected function beforeSave(Model $record): void
+    {
+        dd($record);
+        // Retirer le `category_id` du modèle principal
+        unset($record->category_id);
+    }
+
+    protected function beforeUpdate(Model $record): void{
+        dd($record);
     }
 
 
