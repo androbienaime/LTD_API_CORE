@@ -114,7 +114,11 @@ class ProductResource extends Resource
             ->columns([
                 
                 Tables\Columns\TextColumn::make('name')
+                    ->width("600px")
                     ->verticallyAlignStart()
+                    ->wrap()
+                    ->lineClamp(2)
+                    ->columnSpanFull()
                     ->searchable(),
                 SpatieMediaLibraryImageColumn::make('product_image')
                     ->circular()
@@ -124,6 +128,9 @@ class ProductResource extends Resource
               
                 Tables\Columns\TextColumn::make('slug')
                     ->verticallyAlignStart()
+                    ->verticallyAlignStart()
+                    ->wrap()
+                    ->lineClamp(2)
                     ->searchable(),
                 Tables\Columns\TextColumn::make('description')
                     ->verticallyAlignStart()
@@ -131,12 +138,6 @@ class ProductResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('price')
                     ->money()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('purchase_price')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('currency.symbol')
-                    ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('shop_id')
                     ->numeric()
@@ -332,17 +333,5 @@ class ProductResource extends Resource
                    return self::processFillTable($data, Delivery::class, "delivery_id");
                 });
     }
-
-    protected function beforeSave(Model $record): void
-    {
-        dd($record);
-        // Retirer le `category_id` du modèle principal
-        unset($record->category_id);
-    }
-
-    protected function beforeUpdate(Model $record): void{
-        dd($record);
-    }
-
 
 }
