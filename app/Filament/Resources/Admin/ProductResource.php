@@ -8,9 +8,11 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
+use App\Models\Admin\Value;
 use Illuminate\Support\Str;
 use App\Models\Admin\Product;
 use App\Models\Admin\Delivery;
+use App\Models\Admin\Attribute;
 use Filament\Resources\Resource;
 use Filament\Resources\Pages\Page;
 use Filament\Forms\Components\Grid;
@@ -26,6 +28,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Core\Trait\FillTableToManyTrait;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\RichEditor;
+use Filament\Tables\Columns\ToggleColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\SpatieTagsInput;
 use CodeWithDennis\FilamentSelectTree\SelectTree;
@@ -34,6 +37,7 @@ use App\Filament\Resources\Admin\ProductResource\Pages;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use App\Filament\Resources\Admin\ProductResource\RelationManagers;
+use Icetalker\FilamentTableRepeater\Forms\Components\TableRepeater;
 use App\Filament\Resources\Admin\ProductResource\Pages\CreateProduct;
 use App\Filament\Resources\Admin\ProductResource\RelationManagers\DeclinationProductsRelationManager;
 use App\Filament\Resources\DeliveryProductRelationManagerResource\RelationManagers\DeliveryProductRelationManager;
@@ -114,21 +118,21 @@ class ProductResource extends Resource
             ->columns([
                 
                 Tables\Columns\TextColumn::make('name')
-                    ->width("600px")
+                    ->label(__("Name of product"))
                     ->verticallyAlignStart()
                     ->wrap()
                     ->lineClamp(2)
                     ->columnSpanFull()
                     ->searchable(),
                 SpatieMediaLibraryImageColumn::make('product_image')
+                    ->label(__("Image"))
                     ->circular()
                     ->stacked()
                     ->limit(4)
                     ->conversion('thumb'),
               
                 Tables\Columns\TextColumn::make('slug')
-                    ->verticallyAlignStart()
-                    ->verticallyAlignStart()
+                    ->label(__("Product Slug"))
                     ->wrap()
                     ->lineClamp(2)
                     ->searchable(),
@@ -140,21 +144,22 @@ class ProductResource extends Resource
                     ->money()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('shop_id')
+                ->label(__('Shop'))
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('stock_quantity')
+                    ->label(__("Stock"))
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('product_type')
+                    ->label(__("Type"))
                     ->searchable(),
-                Tables\Columns\IconColumn::make('is_downloadable')
-                    ->boolean(),
-                Tables\Columns\IconColumn::make('available_market')
-                    ->boolean(),
-                Tables\Columns\IconColumn::make('status')
-                    ->boolean(),
-                Tables\Columns\IconColumn::make('is_downloaddable')
-                    ->boolean(),
+                ToggleColumn::make('is_downloadable')
+                    ->label(__("Downloadable")),
+                ToggleColumn::make('available_market')
+                    ->label(__("Available Market")),
+                ToggleColumn::make('status')
+                    ->label("status"),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -286,14 +291,47 @@ class ProductResource extends Resource
     }
 
     private static function declination(){
-        return Repeater::make("declinationProducts")
+        return TableRepeater::make("declinations")
                     ->relationship()
                     ->schema([
-                        // Select::make("attribute")
-                        //     ->relationship(name:"attribute", titleAttribute:"name")
-                        //     ->required()
+                            Select::make('value')
+                                ->relationship('values', 'value')
+                                ->label('Valeur')
+                                ->multiple()
+                                ->options(function () {
+                                    // Récupérer tous les attributs avec leurs valeurs
+                                    $attributes = Attribute::with('values')->get();
 
-                    ]);
+                                    // Organiser les valeurs par attribut
+                                    $options = [];
+                                    foreach ($attributes as $attribute) {
+                                        $options[$attribute->name] = $attribute->values->pluck('value', 'id')->toArray();
+                                    }
+                                    return $options;                                
+                                })
+                                // ->saveRelationshipsUsing(function ($component, $state, $record) {
+                                //     // Synchroniser les catégories dans la table pivot sans toucher à `category_id` du modèle principal
+                                //     $record->declinationValues()->attach($state);
+                                // })
+                                ->required(),
+                            TextInput::make("price")
+                                ->numeric(),
+                            TextInput::make("quantity")
+                                ->required()
+                                ->numeric(),
+                            TextInput::make("reference"),
+                            \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('declinaison_image')
+                            ->multiple()
+                            ->reorderable()
+                            ->imageEditor()
+                            ->responsiveImages()
+                            ->conversion('thumb')
+                            ->optimize('webp')
+                            ->columnSpan('full')
+                            ->imagePreviewHeight(150)
+                            ->panelLayout("grid")
+                            ,
+                            ])->defaultItems(0);
     }
 
     private static function shipping(){
@@ -314,6 +352,7 @@ class ProductResource extends Resource
                             TextInput::make("weigth")
                                 ->numeric(),
                             TextInput::make("costs")
+                                ->required()
                                 ->default(0)
                                 ->numeric(),
                             Select::make("carrier_id")
@@ -327,7 +366,7 @@ class ProductResource extends Resource
                 ])
                 ->grid(2)
                 ->addActionLabel(__("Add Shipping"))
-                ->minItems(0)
+                ->defaultItems(0)
                 ->collapsed(false)
                 ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array{
                    return self::processFillTable($data, Delivery::class, "delivery_id");

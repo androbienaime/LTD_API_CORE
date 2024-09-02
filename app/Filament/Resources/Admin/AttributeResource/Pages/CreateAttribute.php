@@ -9,4 +9,8 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateAttribute extends CreateRecord
 {
     protected static string $resource = AttributeResource::class;
+
+    protected function mutateFormDataBeforeCreate(array $data) : array{
+        return $data;
+    }
 }

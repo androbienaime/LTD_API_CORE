@@ -23,4 +23,5 @@ class EditProduct extends EditRecord
         return $data;
     }
 
+
 }

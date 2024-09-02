@@ -2,16 +2,17 @@
 
 namespace App\Filament\Resources\Admin;
 
-use App\Filament\Resources\Admin\AttributeResource\Pages;
-use App\Filament\Resources\Admin\AttributeResource\RelationManagers;
-use App\Models\Admin\Attribute;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
+use App\Models\Admin\Attribute;
+use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Resources\Admin\AttributeResource\Pages;
+use App\Filament\Resources\Admin\AttributeResource\RelationManagers;
+use App\Filament\Resources\Admin\AttributeResource\RelationManagers\ValueRelationManager;
 
 class AttributeResource extends Resource
 {
@@ -37,9 +38,13 @@ class AttributeResource extends Resource
                 Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('type')
+                Forms\Components\Select::make('type')
                     ->required()
-                    ->maxLength(255),
+                    ->options([
+                        "droplist" => __("Dropdown list"),
+                        "color" => __("Color"),
+                        "radio" => __("Radio"),
+                    ]),
             ]);
     }
 
@@ -77,7 +82,7 @@ class AttributeResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+             ValueRelationManager::class
         ];
     }
 
@@ -86,7 +91,6 @@ class AttributeResource extends Resource
         return [
             'index' => Pages\ListAttributes::route('/'),
             'create' => Pages\CreateAttribute::route('/create'),
-            'view' => Pages\ViewAttribute::route('/{record}'),
             'edit' => Pages\EditAttribute::route('/{record}/edit'),
         ];
     }

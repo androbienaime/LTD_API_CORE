@@ -38,6 +38,8 @@ class CategoryResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\TextInput::make('id')
+                    ->hidden(true),
                 Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255)
@@ -53,7 +55,9 @@ class CategoryResource extends Resource
                     ->required()
                     ->maxLength(255),
                 Select::make('parent_id')
-                    ->options(Category::pluck('name', 'parent_id'))
+                    ->options(function() : array{
+                        return Category::all()->pluck("name", "id")->all();
+                })
             ]);
     }
 
@@ -102,7 +106,6 @@ class CategoryResource extends Resource
     {
         return [
             'index' => Pages\ListCategories::route('/'),
-            'view' => Pages\ViewCategory::route('/{record}'),
             'edit' => Pages\EditCategory::route('/{record}/edit'),
         ];
     }
