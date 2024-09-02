@@ -313,10 +313,15 @@ class ProductResource extends Resource
                                 //     // Synchroniser les catégories dans la table pivot sans toucher à `category_id` du modèle principal
                                 //     $record->declinationValues()->attach($state);
                                 // })
-                                ->required(),
+                                ,
                             TextInput::make("price")
+                                ->minValue(0)
+                                ->default(0)
+                                ->required()
                                 ->numeric(),
                             TextInput::make("quantity")
+                                ->minValue(1)
+                                ->default(1)
                                 ->required()
                                 ->numeric(),
                             TextInput::make("reference"),
@@ -331,7 +336,9 @@ class ProductResource extends Resource
                             ->imagePreviewHeight(150)
                             ->panelLayout("grid")
                             ,
-                            ])->defaultItems(0);
+                            ])
+                            ->addActionLabel(__("Add declinaition"))
+                            ->defaultItems(0);
     }
 
     private static function shipping(){
