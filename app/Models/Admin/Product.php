@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use App\Models\Admin\Carrier;
 use App\Models\Admin\Currency;
 use App\Models\Admin\Delivery;
+use App\Models\Admin\Declination;
 use Spatie\MediaLibrary\HasMedia;
 use App\Models\Admin\BrandProduct;
 use App\Models\Admin\CommentProduct;
@@ -47,6 +48,10 @@ class Product extends Model implements HasMedia
 
     public function declinationProducts() : HasMany{
         return $this->hasMany(DeclinationProduct::class);
+    }
+
+    public function declinations(): HasMany{
+        return $this->hasMany(Declination::class);
     }
 
     public function categoryProducts() : HasMany{

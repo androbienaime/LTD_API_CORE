@@ -15,5 +15,7 @@ class ViewProduct extends ViewRecord
         return [
             Actions\EditAction::make(),
         ];
+   
     }
+
 }
