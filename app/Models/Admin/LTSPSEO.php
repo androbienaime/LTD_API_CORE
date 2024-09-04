@@ -2,8 +2,9 @@
 
 namespace App\Models\Admin;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Spatie\Tags\HasTags;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class LtspSeo extends Model
 {
@@ -12,6 +13,6 @@ class LtspSeo extends Model
         "meta_title",
         "meta_description",
         "is_redirection",
-        
-    ]
+        "category_id"
+    ];
 }
