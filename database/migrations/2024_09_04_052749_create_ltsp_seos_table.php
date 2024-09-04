@@ -11,8 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('l_t_s_p_s_e_o_s', function (Blueprint $table) {
+        Schema::create('ltsp_seos', function (Blueprint $table) {
             $table->id();
+            $table->string('meta_title')->nullable(true);
+            $table->string('meta_description')->nullable(true);
+            $table->boolean('is_redirection')->default(false);
+            $table->foreignId('category_id')->nullable(true);
             $table->timestamps();
         });
     }
@@ -22,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('l_t_s_p_s_e_o_s');
+        Schema::dropIfExists('ltsp_seos');
     }
 };

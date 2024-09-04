@@ -11,6 +11,7 @@ use Filament\Tables\Table;
 use App\Models\Admin\Value;
 use Illuminate\Support\Str;
 use App\Models\Admin\Product;
+use App\Models\Admin\Category;
 use App\Models\Admin\Delivery;
 use App\Models\Admin\Attribute;
 use Filament\Resources\Resource;
@@ -65,13 +66,13 @@ class ProductResource extends Resource
             ->schema([
                 TextInput::make('name')
                     ->required()
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(function (Get $get, Set $set, ?string $old, ?string $state) {
-                        if (($get('slug') ?? '') !== Str::slug($old)) {
-                            return;
-                        }
+                    ->lazy()
+                    ->afterStateUpdated(function (Get $get, Set $set) {
+                        // if (($get('slug') ?? '') !== Str::slug($old)) {
+                        //     return;
+                        // }
 
-                        $set('slug', Product::createUniqueSlug($state));
+                        $set('slug', Product::createUniqueSlug($get('name')));
                     })
                     ->columnSpan("full")
                     ->maxLength(255),
@@ -101,10 +102,7 @@ class ProductResource extends Resource
                             Tab::make("SEO")
                                 ->Icon("heroicon-o-magnifying-glass")
                                 ->schema([
-                                    TextInput::make('slug')
-                                        ->live()
-                                        ->required()
-                                        ->maxLength(255),
+                                    self::seo()
                                        
                                 ])
                         ])->columnSpan("full")
@@ -378,6 +376,55 @@ class ProductResource extends Resource
                 ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array{
                    return self::processFillTable($data, Delivery::class, "delivery_id");
                 });
+    }
+
+    private static function seo(){
+        return Grid::make()
+            ->schema([
+                TextInput::make('slug')
+                    ->live()
+                    ->required()
+                    ->maxLength(255)
+                    ->columnSpanFull(),
+
+                Grid::make("ltspSeo")
+                    ->relationship("ltspSeo", "id")
+                    ->schema([
+                            TextInput::make('meta_title')
+                                ->live()
+                                ->maxLength(255)
+                                ->columnSpanFull(),
+                            RichEditor::make('meta_description')
+                            ->columnSpanFull()
+                            ->label(__("Meta Description"))
+                            ->columnSpanFull(),
+                        
+                            Select::make('is_redirection')
+                                ->options(
+                                    [
+                                        "0" => __("No"),
+                                        "1" => __("Yes"),
+                                    ]
+                                )
+                                ->required()
+                                ->default("0")
+                                ->label("Redirection"),
+                            
+                                Select::make('category_id')
+                                ->label('Category')
+                                ->searchable()
+                                ->options(
+                                    Category::all()
+                                    ->pluck('name', 'id')
+                                    ->toArray()
+                                ),
+                            Forms\Components\SpatieTagsInput::make('product_tags')
+                                ->columnSpanFull()
+                                ->label("Tags"),
+                ])->columns(2)
+               
+            ]);
+
     }
 
 }
