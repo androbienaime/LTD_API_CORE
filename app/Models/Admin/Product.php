@@ -66,6 +66,10 @@ class Product extends Model implements HasMedia
         return $this->hasMany(BrandProduct::class);
     }
 
+    public function brands() : BelongsToMany{
+        return $this->belongsToMany(Brand::class);
+    }
+
     public function deliveryProducts() : HasMany{
         return $this->hasMany(DeliveryProduct::class);
     }
@@ -88,6 +92,10 @@ class Product extends Model implements HasMedia
 
     public function ltspSeo() : BelongsTo{
         return $this->belongsTo(LtspSeo::class);
+    }
+
+    public function productDiscount() : BelongsTo{
+        return $this->belongsTo(ProductDiscount::class);
     }
     public static function createUniqueSlug($name){
         $slug = Str::slug($name);

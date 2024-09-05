@@ -2,16 +2,17 @@
 
 namespace App\Filament\Resources\Admin;
 
-use App\Filament\Resources\Admin\BrandResource\Pages;
-use App\Filament\Resources\Admin\BrandResource\RelationManagers;
-use App\Models\Admin\Brand;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
+use App\Models\Admin\Brand;
+use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Resources\Admin\BrandResource\Pages;
+use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
+use App\Filament\Resources\Admin\BrandResource\RelationManagers;
 
 class BrandResource extends Resource
 {
@@ -37,8 +38,17 @@ class BrandResource extends Resource
                 Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('logo')
-                    ->maxLength(255),
+                    \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('brand_logo')
+                    ->multiple()
+                    ->reorderable()
+                    ->imageEditor()
+                    ->responsiveImages()
+                    ->conversion('thumb')
+                    ->optimize('webp')
+                    ->columnSpan('full')
+                    ->imagePreviewHeight(50)
+                    ->panelLayout("grid")
+                    ,
                 Forms\Components\TextInput::make('color')
                     ->maxLength(255),
             ]);
@@ -50,8 +60,12 @@ class BrandResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('logo')
-                    ->searchable(),
+                SpatieMediaLibraryImageColumn::make('brand_logo')
+                    ->label(__("Image"))
+                    ->circular()
+                    ->stacked()
+                    ->limit(4)
+                    ->conversion('thumb'),
                 Tables\Columns\TextColumn::make('color')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
@@ -88,8 +102,6 @@ class BrandResource extends Resource
     {
         return [
             'index' => Pages\ListBrands::route('/'),
-            'create' => Pages\CreateBrand::route('/create'),
-            'view' => Pages\ViewBrand::route('/{record}'),
             'edit' => Pages\EditBrand::route('/{record}/edit'),
         ];
     }

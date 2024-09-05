@@ -20,7 +20,7 @@ return new class extends Migration
             $table->foreignId("currency_id")->constrained();
             $table->decimal("purchase_price", 16, 5)->nullable(true);
             $table->integer("stock_quantity")->default(0);
-            $table->string("product_type")->nullable(true);
+            $table->string("product_type")->default("product");
             $table->boolean("is_downloadable")->default(false);
             $table->boolean("available_market")->default(false);
             $table->boolean("product_with_declination")->default(false);

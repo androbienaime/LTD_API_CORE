@@ -8,6 +8,7 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
+use App\Models\Admin\Brand;
 use App\Models\Admin\Value;
 use Illuminate\Support\Str;
 use App\Models\Admin\Product;
@@ -16,6 +17,7 @@ use App\Models\Admin\Delivery;
 use App\Models\Admin\Attribute;
 use Filament\Resources\Resource;
 use Filament\Resources\Pages\Page;
+use Illuminate\Support\HtmlString;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Group;
@@ -31,6 +33,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\RichEditor;
 use Filament\Tables\Columns\ToggleColumn;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\SpatieTagsInput;
 use CodeWithDennis\FilamentSelectTree\SelectTree;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -93,6 +96,12 @@ class ProductResource extends Resource
                             ])
                             ->hiddenOn(DeliveryProductRelationManager::class)
                             ->icon('heroicon-o-cursor-arrow-ripple'),
+                            
+                            Tab::make(__("Stock & Price"))
+                            ->schema([
+                                self::stockAndPrice()
+                            ])
+                            ->icon('heroicon-o-magnifying-glass'),
                             Tab::make(__("Shipping"))
                             ->schema([
                                self::shipping()
@@ -117,10 +126,13 @@ class ProductResource extends Resource
                 
                 Tables\Columns\TextColumn::make('name')
                     ->label(__("Name of product"))
+                    ->description(fn(Product $product) => new HtmlString(
+                        "<span style='font-size:10px'>".strip_tags(Str::limit($product->description, 40)."</span>")))
                     ->verticallyAlignStart()
                     ->wrap()
                     ->lineClamp(2)
                     ->columnSpanFull()
+                    ->extraAttributes(['style' => 'width: 200px;'])
                     ->searchable(),
                 SpatieMediaLibraryImageColumn::make('product_image')
                     ->label(__("Image"))
@@ -134,10 +146,6 @@ class ProductResource extends Resource
                     ->wrap()
                     ->lineClamp(2)
                     ->searchable(),
-                Tables\Columns\TextColumn::make('description')
-                    ->verticallyAlignStart()
-                    ->limit(30)
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('price')
                     ->money()
                     ->sortable(),
@@ -150,6 +158,22 @@ class ProductResource extends Resource
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('product_type')
+                    ->badge()
+                    ->state(fn(Product $product) => match ($product->product_type) {
+                        'product' => 'Product',
+                        'digital' => 'Digital',
+                        'service' => 'Service',
+                    })
+                    ->color(fn(Product $product) => match ($product->product_type) {
+                        'product' => 'primary',
+                        'digital' => 'success',
+                        'service' => 'warning',
+                    })
+                    ->icon(fn(Product $product) => match ($product->product_type) {
+                        'product' => 'heroicon-s-shopping-cart',
+                        'digital' => 'heroicon-s-cloud',
+                        'service' => 'heroicon-s-cog',
+                    })
                     ->label(__("Type"))
                     ->searchable(),
                 ToggleColumn::make('is_downloadable')
@@ -234,13 +258,15 @@ class ProductResource extends Resource
 
                             Grid::make()
                                 ->schema([
-                                    Forms\Components\Toggle::make('is_downloadable')
+                                    Forms\Components\Toggle::make('is_trend')
+                                        ->label("Trend")
                                         ->required(),
                                     Forms\Components\Toggle::make('available_market')
                                         ->required(),
                                     Forms\Components\Toggle::make('status')
                                         ->required(),
                                     Forms\Components\Toggle::make('is_downloaddable')
+                                        ->label(__("Downloaddable"))
                                         ->required(),
                                 ])->columns(4),
                         ])->columnSpan(8),
@@ -255,6 +281,11 @@ class ProductResource extends Resource
                                         ->numeric()
                                         ->prefix('$')
                                         ->columnSpan("full"),
+                                TextInput::make('sku')
+                                    ->default(uniqid())
+                                    ->label(__("Sku"))
+                                    ->unique(Product::class, column: 'sku', ignoreRecord:true)
+                                    ->maxLength(255),
                                         Grid::make()
                                         ->schema([
                                             Select::make('currency_id')
@@ -262,8 +293,14 @@ class ProductResource extends Resource
                                                 ->relationship("currency", "currency")
                                                 ->default(1)
                                                 ->required(),
-                                            TextInput::make('purchase_price')
-                                                ->numeric(),
+
+                                                Select::make('product_type')
+                                                ->options([
+                                                    "product" => "Product",
+                                                    "digital" => "Digital",
+                                                    "service" => "Service",
+                                                ])
+                                            ->default("product"),
                                         ])->columnSpan("full"),
 
                                         SelectTree::make('categories')
@@ -274,69 +311,77 @@ class ProductResource extends Resource
                                                 // Synchroniser les catégories dans la table pivot sans toucher à `category_id` du modèle principal
                                                 $record->categories()->sync($state);
                                             }),
-                                        Grid::make()
-                                        ->schema([
-                                            TextInput::make('stock_quantity')
-                                                ->required()
-                                                ->numeric()
-                                                ->default(0),
-                                            TextInput::make('product_type')
-                                                ->maxLength(255),
-                                        ])->columns(2),
+
+                                            Forms\Components\Select::make('brand')
+                                            ->relationship('brands')
+                                            ->multiple()
+                                            ->searchable()
+                                            ->options(Brand::all()
+                                                ->pluck('name', 'id')
+                                                ->toArray()
+                                            )
+                                            ->label(__("Brand")),
         
                             ])->columnSpan(4)
                     ])->columns(12);
     }
 
     private static function declination(){
-        return TableRepeater::make("declinations")
-                    ->relationship()
-                    ->schema([
-                            Select::make('value')
-                                ->relationship('values', 'value')
-                                ->label('Valeur')
-                                ->multiple()
-                                ->options(function () {
-                                    // Récupérer tous les attributs avec leurs valeurs
-                                    $attributes = Attribute::with('values')->get();
+        return Grid::make()
+            ->schema([
+                Fieldset::make()
+                ->label(__("Declination"))
+                ->schema([
+                    TableRepeater::make("declinations")
+                        ->relationship()
+                        ->schema([
+                                Select::make('value')
+                                    ->relationship('values', 'value')
+                                    ->label('Valeur')
+                                    ->multiple()
+                                    ->options(function () {
+                                        // Récupérer tous les attributs avec leurs valeurs
+                                        $attributes = Attribute::with('values')->get();
 
-                                    // Organiser les valeurs par attribut
-                                    $options = [];
-                                    foreach ($attributes as $attribute) {
-                                        $options[$attribute->name] = $attribute->values->pluck('value', 'id')->toArray();
-                                    }
-                                    return $options;                                
-                                })
-                                // ->saveRelationshipsUsing(function ($component, $state, $record) {
-                                //     // Synchroniser les catégories dans la table pivot sans toucher à `category_id` du modèle principal
-                                //     $record->declinationValues()->attach($state);
-                                // })
+                                        // Organiser les valeurs par attribut
+                                        $options = [];
+                                        foreach ($attributes as $attribute) {
+                                            $options[$attribute->name] = $attribute->values->pluck('value', 'id')->toArray();
+                                        }
+                                        return $options;                                
+                                    })
+                                    // ->saveRelationshipsUsing(function ($component, $state, $record) {
+                                    //     // Synchroniser les catégories dans la table pivot sans toucher à `category_id` du modèle principal
+                                    //     $record->declinationValues()->attach($state);
+                                    // })
+                                    ,
+                                TextInput::make("price")
+                                    ->minValue(0)
+                                    ->default(0)
+                                    ->required()
+                                    ->numeric(),
+                                TextInput::make("quantity")
+                                    ->minValue(1)
+                                    ->default(1)
+                                    ->required()
+                                    ->numeric(),
+                                TextInput::make("reference"),
+                                \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('declinaison_image')
+                                ->multiple()
+                                ->reorderable()
+                                ->imageEditor()
+                                ->responsiveImages()
+                                ->conversion('thumb')
+                                ->optimize('webp')
+                                ->columnSpan('full')
+                                ->imagePreviewHeight(150)
+                                ->panelLayout("grid")
                                 ,
-                            TextInput::make("price")
-                                ->minValue(0)
-                                ->default(0)
-                                ->required()
-                                ->numeric(),
-                            TextInput::make("quantity")
-                                ->minValue(1)
-                                ->default(1)
-                                ->required()
-                                ->numeric(),
-                            TextInput::make("reference"),
-                            \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('declinaison_image')
-                            ->multiple()
-                            ->reorderable()
-                            ->imageEditor()
-                            ->responsiveImages()
-                            ->conversion('thumb')
-                            ->optimize('webp')
-                            ->columnSpan('full')
-                            ->imagePreviewHeight(150)
-                            ->panelLayout("grid")
-                            ,
-                            ])
-                            ->addActionLabel(__("Add declinaition"))
-                            ->defaultItems(0);
+                                ])
+                                ->addActionLabel(__("Add declinaition"))
+                                ->defaultItems(0),
+                ])
+            ]);
     }
 
     private static function shipping(){
@@ -425,6 +470,109 @@ class ProductResource extends Resource
                
             ]);
 
+    }
+
+    private static function stockAndPrice(){
+        return Grid::make()
+                ->schema([  
+                    Fieldset::make()
+                    ->label(__("Gestion Stock"))
+                        ->schema([
+                        Grid::make()
+                        ->schema([
+                            Forms\Components\Toggle::make('is_in_stock')
+                                ->label(__("In Stock"))
+                                ->live()
+                                ->default(false)
+                                ->required(),
+                            Forms\Components\Toggle::make('has_unlimited_stock')
+                                ->label("Unlimited Stock")
+                                ->live()
+                                ->hidden(fn (Forms\Get $get) => !$get('is_in_stock'))
+                                ->default(true)
+                                ->required(),
+                                Forms\Components\Toggle::make('has_stock_alert')
+                                ->label(__("Stock Alert"))
+                                ->live()
+                                ->hidden(fn (Forms\Get $get) => !$get('is_in_stock'))
+                                ->default(false)
+                                ->required(),
+                           
+                        ])->columns(3),
+                        Grid::make()
+                        ->schema([
+                            TextInput::make('stock_quantity')
+                            ->live()
+                            ->hidden(fn (Forms\Get $get) => !$get('is_in_stock') || $get('has_unlimited_stock'))
+                            ->numeric()
+                            ->minValue(0)
+                            ->default(0)
+                            ->columnSpanFull(),
+
+                            TextInput::make('min_stock_alert')
+                            ->live()
+                            ->hidden(fn (Forms\Get $get) => !$get('is_in_stock') || !$get('has_stock_alert'))
+                            ->minValue(0)
+                            ->numeric()
+                            ->default(0),
+                            TextInput::make('max_stock_alert')
+                            ->live()
+                            ->minValue(0)
+                            ->hidden(fn (Forms\Get $get) => !$get('is_in_stock') || !$get('has_stock_alert'))
+                            ->numeric()
+                            ->default(0),
+
+                        ])->columns(2)
+
+                       
+                        ]),
+                        Fieldset::make()
+                        ->label(__("Price"))
+                            ->schema([
+                            Grid::make()
+                            ->schema([
+                                Forms\Components\Toggle::make('has_multi_price')
+                                    ->label(__("Multi price"))
+                                    ->live()
+                                    ->default(false)
+                                    ->required(),
+                            TextInput::make('purchase_price')
+                                ->numeric(),
+                            ]),
+                        ]),
+                        Fieldset::make()
+                        ->label(__("Discount"))
+                        ->schema([
+                            Forms\Components\Toggle::make('has_discount')
+                            ->live(),
+                            Grid::make()
+                            ->relationship("productDiscount", "id")
+                            ->live()
+                            ->hidden(fn (Forms\Get $get) => !$get('has_discount'))
+                            ->schema([
+                                TextInput::make("discount")
+                                ->live()
+                                ->numeric()
+                                ->minValue(0)
+                                ->maxValue(100)
+                                ->label(__("Discount"))
+                                ->prefix("%")
+                                ->columnSpanFull(),
+                                Grid::make()
+                                    ->schema([
+                                        DateTimePicker::make('start_date')
+                                        ->live()
+                                            ->rule('after:now')
+                                            ->label(__("Start Date")),
+                                        DateTimePicker::make('end_date')
+                                        ->live()
+                                        ->rule('after:now')
+                                        ->label(__("End Date")),
+                                    ])->columns(2)
+                            ])
+                        ])
+
+                ]);
     }
 
 }
