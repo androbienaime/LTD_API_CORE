@@ -3,6 +3,7 @@
 namespace App\Models\Admin;
 
 use App\Models\Customer;
+use Illuminate\Cache\RateLimiting\Unlimited;
 use Spatie\Tags\HasTags;
 use App\Models\Admin\Shop;
 use Illuminate\Support\Str;
@@ -103,4 +104,6 @@ class Product extends Model implements HasMedia
 
         return $count > 0 ? (string) "{$slug}-{$count}" :$slug;
     }
+
+   
 }
