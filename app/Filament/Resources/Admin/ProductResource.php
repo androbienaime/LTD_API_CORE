@@ -27,6 +27,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Tabs\Tab;
+use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Model;
 use App\Core\Trait\FillTableToManyTrait;
 use Filament\Forms\Components\TextInput;
@@ -101,7 +102,7 @@ class ProductResource extends Resource
                             ->schema([
                                 self::stockAndPrice()
                             ])
-                            ->icon('heroicon-o-magnifying-glass'),
+                            ->icon('heroicon-o-banknotes'),
                             Tab::make(__("Shipping"))
                             ->schema([
                                self::shipping()
@@ -130,10 +131,12 @@ class ProductResource extends Resource
                         "<span style='font-size:10px'>".strip_tags(Str::limit($product->description, 40)."</span>")))
                     ->verticallyAlignStart()
                     ->wrap()
+                    ->limit(20)
                     ->lineClamp(2)
                     ->columnSpanFull()
                     ->extraAttributes(['style' => 'width: 200px;'])
                     ->searchable(),
+                    
                 SpatieMediaLibraryImageColumn::make('product_image')
                     ->label(__("Image"))
                     ->circular()
@@ -232,6 +235,7 @@ class ProductResource extends Resource
                                 ->schema([
                                         \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('product_image')
                                             ->multiple()
+                                            ->required()
                                             ->reorderable()
                                             ->imageEditor()
                                             ->responsiveImages()
@@ -278,6 +282,7 @@ class ProductResource extends Resource
                                     ->default(false),
                                 TextInput::make('price')
                                         ->required()
+                                        ->minValue(0)
                                         ->numeric()
                                         ->prefix('$')
                                         ->columnSpan("full"),
@@ -300,7 +305,8 @@ class ProductResource extends Resource
                                                     "digital" => "Digital",
                                                     "service" => "Service",
                                                 ])
-                                            ->default("product"),
+                                                ->default("product")
+                                                ->required(),
                                         ])->columnSpan("full"),
 
                                         SelectTree::make('categories')
@@ -394,14 +400,19 @@ class ProductResource extends Resource
                     ->relationship("delivery", "id")
                         ->schema([
                             TextInput::make("width")
+                                ->minValue(0)
                                 ->numeric(),
                             TextInput::make("heigth")
+                                ->minValue(0)
                                 ->numeric(),
                             TextInput::make("depth")
+                                ->minValue(0)
                                 ->numeric(),
                             TextInput::make("weigth")
+                                ->minValue(0)
                                 ->numeric(),
                             TextInput::make("costs")
+                                ->minValue(0)
                                 ->required()
                                 ->default(0)
                                 ->numeric(),
