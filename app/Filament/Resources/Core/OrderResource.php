@@ -4,9 +4,9 @@ namespace App\Filament\Resources\Core;
 
 use App\Filament\Resources\Core\OrderResource\Pages;
 use App\Filament\Resources\Core\OrderResource\RelationManagers;
-use App\Models\Admin\Order;
-use App\Models\Admin\OrderStatus;
-use App\Models\Admin\Product;
+use App\Models\Core\Order;
+use App\Models\Core\OrderStatus;
+use App\Models\Core\Product;
 use Filament\Forms;
 use Filament\Forms\Components\Builder\Block;
 use Filament\Forms\Components\DateTimePicker;

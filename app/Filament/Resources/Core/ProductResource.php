@@ -7,14 +7,14 @@ use Filament\Tables;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Forms\Form;
+use App\Models\Core\Brand;
+use App\Models\Core\Value;
 use Filament\Tables\Table;
-use App\Models\Admin\Brand;
-use App\Models\Admin\Value;
 use Illuminate\Support\Str;
-use App\Models\Admin\Product;
-use App\Models\Admin\Category;
-use App\Models\Admin\Delivery;
-use App\Models\Admin\Attribute;
+use App\Models\Core\Product;
+use App\Models\Core\Category;
+use App\Models\Core\Delivery;
+use App\Models\Core\Attribute;
 use Filament\Resources\Resource;
 use Filament\Resources\Pages\Page;
 use Illuminate\Support\HtmlString;
@@ -47,8 +47,8 @@ use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use App\Filament\Resources\Core\ProductResource\RelationManagers;
 use Icetalker\FilamentTableRepeater\Forms\Components\TableRepeater;
 use App\Filament\Resources\Core\ProductResource\Pages\CreateProduct;
+use App\Filament\Resources\Core\ProductResource\RelationManagers\DeliveryProductRelationManager;
 use App\Filament\Resources\Core\ProductResource\RelationManagers\DeclinationProductsRelationManager;
-use App\Filament\Resources\DeliveryProductRelationManagerResource\RelationManagers\DeliveryProductRelationManager;
 
 class ProductResource extends Resource
 {

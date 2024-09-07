@@ -5,7 +5,7 @@ use Filament\Forms;
 use Filament\Tables;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
-use App\Models\Admin\Delivery;
+use App\Models\Core\Delivery;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Fieldset;

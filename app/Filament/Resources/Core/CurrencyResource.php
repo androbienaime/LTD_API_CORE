@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Core;
 
 use App\Filament\Resources\Core\CurrencyResource\Pages;
 use App\Filament\Resources\Core\CurrencyResource\RelationManagers;
-use App\Models\Admin\Currency;
+use App\Models\Core\Currency;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;

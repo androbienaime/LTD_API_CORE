@@ -6,7 +6,7 @@ use Filament\Forms;
 use Filament\Tables;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
-use App\Models\Admin\Value;
+use App\Models\Core\Value;
 use Filament\Forms\Components\Grid;
 use App\Core\Trait\FillTableToManyTrait;
 use Filament\Tables\Columns\ColorColumn;

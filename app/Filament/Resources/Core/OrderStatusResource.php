@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Core;
 
 use App\Filament\Resources\Core\OrderStatusResource\Pages;
 use App\Filament\Resources\Core\OrderStatusResource\RelationManagers;
-use App\Models\Admin\OrderStatus;
+use App\Models\Core\OrderStatus;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;

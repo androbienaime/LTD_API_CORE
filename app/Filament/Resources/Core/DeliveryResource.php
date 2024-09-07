@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Core;
 
 use App\Filament\Resources\Core\DeliveryResource\Pages;
 use App\Filament\Resources\Core\DeliveryResource\RelationManagers;
-use App\Models\Admin\Delivery;
+use App\Models\Core\Delivery;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;

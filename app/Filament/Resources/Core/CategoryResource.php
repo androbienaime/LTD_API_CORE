@@ -9,7 +9,7 @@ use Filament\Forms\Set;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
-use App\Models\Admin\Category;
+use App\Models\Core\Category;
 use Filament\Resources\Resource;
 use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;

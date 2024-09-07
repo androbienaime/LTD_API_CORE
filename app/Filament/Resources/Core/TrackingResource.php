@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Core;
 
 use App\Filament\Resources\Core\TrackingResource\Pages;
 use App\Filament\Resources\Core\TrackingResource\RelationManagers;
-use App\Models\Admin\Tracking;
+use App\Models\Core\Tracking;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;

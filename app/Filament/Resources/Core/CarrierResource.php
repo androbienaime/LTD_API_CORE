@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Core;
 
 use App\Filament\Resources\Core\CarrierResource\Pages;
 use App\Filament\Resources\Core\CarrierResource\RelationManagers;
-use App\Models\Admin\Carrier;
+use App\Models\Core\Carrier;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;

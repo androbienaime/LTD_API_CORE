@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Core;
 
 use App\Filament\Resources\Core\AddressResource\Pages;
 use App\Filament\Resources\Core\AddressResource\RelationManagers;
-use App\Models\Address;
+use App\Models\Core\Address;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;

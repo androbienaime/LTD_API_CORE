@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Core;
 
 use App\Filament\Resources\Core\PaymentMethodResource\Pages;
 use App\Filament\Resources\Core\PaymentMethodResource\RelationManagers;
-use App\Models\Admin\PaymentMethod;
+use App\Models\Core\PaymentMethod;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;

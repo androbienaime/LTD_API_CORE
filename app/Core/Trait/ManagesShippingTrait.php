@@ -2,7 +2,7 @@
 
 namespace App\Core\Trait;
 
-use App\Models\Admin\Delivery;
+use App\Models\Core\Delivery;
 
 trait ManagesShippingTrait {
 

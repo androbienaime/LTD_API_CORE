@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Core;
 
 use App\Filament\Resources\Core\MerchantResource\Pages;
 use App\Filament\Resources\Core\MerchantResource\RelationManagers;
-use App\Models\Admin\Merchant;
+use App\Models\Core\Merchant;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
