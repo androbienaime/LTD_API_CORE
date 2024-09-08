@@ -2,6 +2,7 @@
 
 namespace App\Core\ResourceModules\Product;
 
+use App\Core\Trait\ManageStockTrait;
 use Filament\Forms\Get;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Toggle;
@@ -11,6 +12,8 @@ use Filament\Forms\Components\DateTimePicker;
 
 class ProductStockAndPrices
 {
+    use ManageStockTrait;
+
     public static function form(){
         return Grid::make()
         ->schema([  

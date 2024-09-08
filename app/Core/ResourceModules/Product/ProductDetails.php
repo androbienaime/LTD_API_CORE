@@ -7,6 +7,7 @@ use App\Models\Core\Product;
 use App\Models\Core\Attribute;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Radio;
+use App\Forms\Components\SelectImage;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Section;
@@ -100,6 +101,7 @@ class ProductDetails
                                         "digital" => "Digital",
                                         "service" => "Service",
                                     ])
+                                    ->allowHtml()
                                     ->default("product")
                                     ->required(),
                             ])->columnSpan("full"),
