@@ -2,34 +2,43 @@
 
 namespace App\Filament\Resources\Core;
 
-use App\Filament\Resources\Core\OrderResource\Pages;
-use App\Filament\Resources\Core\OrderResource\RelationManagers;
-use App\Models\Core\Order;
-use App\Models\Core\OrderStatus;
-use App\Models\Core\Product;
 use Filament\Forms;
-use Filament\Forms\Components\Builder\Block;
-use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
+use Filament\Tables;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Columns\ImageColumn;
-use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
+use Filament\Forms\Form;
+use App\Models\Core\Order;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
-use Pelmered\FilamentMoneyField\Tables\Columns\MoneyColumn;
-use Thiktak\FilamentNestedBuilderForm\Forms\Components\NestedSubBuilder;
+use App\Models\Core\Product;
+use App\Models\Core\Attribute;
+use App\Models\Core\OrderStatus;
+use Filament\Resources\Resource;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Section;
+use Filament\Resources\Components\Tab;
+use Illuminate\Database\Eloquent\Model;
+use Filament\Forms\Components\TextInput;
+use Filament\Tables\Columns\ImageColumn;
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms\Components\Builder\Block;
 use function Symfony\Component\String\match;
+use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\DateTimePicker;
+use App\Core\ResourceModules\Product\ProductSeo;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Core\ResourceModules\Product\ProductDetails;
+use App\Filament\Resources\Core\OrderResource\Pages;
+use App\Core\ResourceModules\Product\ProductShippings;
+use App\Core\ResourceModules\Product\ProductDeclinations;
+use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
+use App\Core\ResourceModules\Product\ProductStockAndPrices;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use Pelmered\FilamentMoneyField\Tables\Columns\MoneyColumn;
+use App\Filament\Resources\Core\OrderResource\RelationManagers;
+use Thiktak\FilamentNestedBuilderForm\Forms\Components\NestedSubBuilder;
 
 class OrderResource extends Resource
 {
@@ -44,7 +53,6 @@ class OrderResource extends Resource
     public static function getNavigationLabel() : string{
         return __("Orders");
     }
-
 
     public static function form(Form $form): Form
     {
@@ -126,16 +134,35 @@ class OrderResource extends Resource
                                 ->searchable()
                                 ->createOptionForm([
                                     self::prod(),
-                                ]),
+                                ])
+                                ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
+                                        $product = Product::find($get('product_id'));
+                                        if(self::hasDeclinaitions(Product::find($get('product_id')))){
+                                            self::updateFieldsDeclination($product, $set);
+                                        }
+                                }),
                                 TextInput::make("quantity")
                                     ->numeric()
                                     ->required()
                                     ->default(1),
+                                Grid::make()
+                                    ->schema([
+                                        Grid::make("dec")
+                                            ->schema(function(Get $get){
+                                                $fields = $get("dyc") ?? [];
+                                                return self::GenerateFields($fields);
+
+                                        })->columns(2)
+    
+                                    ])
+                                    ->hidden(fn(Get $get) => 
+                                       !self::hasDeclinaitions(Product::find($get('product_id')))
+                                    )
                             ])
-                            ->columns(2)
+                            ->columns(3)
                             ->collapsed()
                             ->minItems(1)
-                            ->live(debounce : 500)
+                            ->live()
                             ->reorderable(true)
                             ->reorderableWithButtons()
                             ->afterStateUpdated(function (Get $get, Set $set) {
@@ -144,6 +171,7 @@ class OrderResource extends Resource
 //                            ->itemLabel(fn (array $state): ?string =>
 //                                self::labelProduct(self::getProduct($state['product_id'])) ?? null)
                             ->addActionLabel(__("Add products"))
+                            ->addAction(fn(Action $action) =>$action->label("Hello"))
                     ])->columns(1),
 
               Section::make()
@@ -238,76 +266,27 @@ class OrderResource extends Resource
     }
 
     private static function prod(){
-       return Grid::make()
-           ->schema([
-               Grid::make()
-                ->schema([
-                    TextInput::make('name')
-                        ->required()
-                        ->afterStateUpdated(function (Get $get, Set $set, ?string $old, ?string $state) {
-                            if (($get('slug') ?? '') !== Str::slug($old)) {
-                                return;
-                            }
-
-                            $set('slug', Str::slug($state));
-                        })
-                        ->maxLength(255),
-                    TextInput::make('slug')
-                        ->required()
-                        ->maxLength(255),
-                ])->columns(2),
-
-               SpatieMediaLibraryFileUpload::make('product_image')
-                   ->multiple()
-                   ->imageEditor()
-                   ->responsiveImages()
-                   ->optimize('webp')
-                   ->conversion('thumb')
-                   ->columnSpan('full'),
-
+       return 
+            Grid::make()
+            ->schema([
                     Grid::make()
                         ->schema([
-                            Select::make('currency_id')
-                                ->label(__("Currency"))
-                                ->relationship("currency", "currency")
-                                ->required(),
+                        TextInput::make('name')
+                            ->required()
+                            ->lazy()
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                $set('slug', Product::createUniqueSlug($get('name')));
+                            })
+                            ->maxLength(255),
+                            TextInput::make('slug')
+                            ->live()
+                            ->required()
+                            ->maxLength(255)
+                            ,
+                    ])->columns(2),
 
-                            TextInput::make('price')
-                                ->required()
-                                ->numeric()
-                                ->prefix('$'),
-                            TextInput::make('purchase_price')
-                                ->required()
-                                ->numeric(),
-                        ])->columns(3),
-
-                    Forms\Components\Textarea::make('description')
-                        ->required()
-                        ->maxLength(255),
-
-                    Grid::make()
-                        ->schema([
-                            TextInput::make('stock_quantity')
-                                ->required()
-                                ->numeric()
-                                ->default(0),
-                            TextInput::make('product_type')
-                                ->required()
-                                ->maxLength(255),
-                        ])->columns(2),
-
-                    Grid::make()
-                        ->schema([
-                            Forms\Components\Toggle::make('is_downloadable')
-                                ->required(),
-                            Forms\Components\Toggle::make('available_market')
-                                ->required(),
-                            Forms\Components\Toggle::make('status')
-                                ->required(),
-                            Forms\Components\Toggle::make('is_downloaddable')
-                                ->required(),
-                        ])->columns(4),
-               ]);
+                    ProductDetails::form(),
+            ]);
     }
 
     public static function updateTotals(Get $get, Set $set): void
@@ -341,5 +320,117 @@ class OrderResource extends Resource
 
     public static function getProduct($id){
        return Product::all()->where("id", $id)->first();
+    }
+    
+    public static function hasDeclinaitions(?Product $product){
+        if($product == null){ return; } 
+        $hasDeclination = false;
+        if($product->product_with_declination == true && $product->declinations->count() > 0){
+            $hasDeclination = true;
+           //
+        }
+
+        return $hasDeclination;
+    }
+
+    public static function updateFieldsDeclination($product, $set){
+        $options = [];
+        foreach($product->declinations as $pd){
+            foreach($pd->values as $p){
+                $attribute = $p->attributeValue->first()->attribute;
+                self::attributesExist($options, $attribute) ?: $options[$attribute->id][] = $p;
+            }
+            
+        }
+
+        $fiel = [];
+        foreach($options as $key => $value){
+                $fiel[] = [
+                    "type" => "select",
+                    "name" => Attribute::find($key)->name,
+                    "label" => Attribute::find($key)->name,
+                    "options" => $value,
+                    "required" => true,
+                ];
+        }
+        $fields = self::Fields();
+        $set("dyc", $fiel);
+        // dd($options);
+    }
+
+    public static function attributesExist($options, $attributes){
+            // Parcourir chaque groupe d'options
+        foreach ($options as $attributeName => $values) {
+            // Parcourir les sous-valeurs du tableau (les sous-éléments)
+            foreach ($values as $option) {
+                // Vérifier si l'ID correspond
+                if ($option->id == $attributes->id) {
+                    return true; // Si trouvé, retourner immédiatement true
+                }
+            }
+        }
+
+        // Si aucune correspondance n'a été trouvée, retourner false
+        return false;
+    }
+
+    public static function Fields(){
+       return $fields = [
+            [
+                'type' => 'input',
+                'name' => 'name',
+                'label' =>'salut',
+                'required' => true,
+                'lazy' => true,
+                // 'callback' => function (Get $get, Set $set) {
+                //     $set('slug', Product::createUniqueSlug($get('name')));
+                // },
+                'maxLength' => 255,
+            ],
+            [
+                'type' => 'select',
+                'name' => 'slug',
+                'label' => "geri",
+                'live' => true,
+                'required' => true,
+                'maxLength' => 255,
+            ],
+        ];
+    }
+
+    public static function GenerateFields(array $fields){
+        return array_map(function($field) {
+            $input = Grid::make()->schema([]);
+            
+
+            switch($field["type"] ){
+            
+                case "input":{
+                    $input =TextInput::make($field['name'])
+                    ->required($field['required'] ?? false)
+                    ->lazy($field['lazy'] ?? false)
+                    ->maxLength($field['maxLength'] ?? null);
+        
+                    if (isset($field['live'])) {
+                        $input->live($field['live']);
+                    }
+            
+                    if (isset($field['callback'])) {
+                        $input->afterStateUpdated($field['callback']);
+                    }
+                    break;
+                }
+                case "select" :{
+                    $input = Select::make($field['name'])
+                    ->options(array_map(function($val){
+                        return [$val->id] = $val->value;
+                    }, $field["options"]))
+                    ->required($field['required'] ?? false)
+                    ->lazy($field['lazy'] ?? false);
+                }
+            }
+            
+            return $input;
+        }, $fields);
     }
 }

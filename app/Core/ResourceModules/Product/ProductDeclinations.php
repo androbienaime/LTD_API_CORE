@@ -51,7 +51,8 @@ class ProductDeclinations
                                     ->minValue(1)
                                     ->default(1)
                                     ->required()
-                                    ->numeric(),
+                                    ->numeric()
+                                    ->hidden(true),
                                 TextInput::make("reference"),
                                 SpatieMediaLibraryFileUpload::make('declinaison_image')
                                 ->multiple()

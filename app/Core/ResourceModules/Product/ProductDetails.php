@@ -28,7 +28,7 @@ class ProductDetails
             ->schema([
                 Grid::make()
                     ->schema([
-                            \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('product_image')
+                            SpatieMediaLibraryFileUpload::make('product_image')
                                 ->multiple()
                                 ->required()
                                 ->reorderable()
