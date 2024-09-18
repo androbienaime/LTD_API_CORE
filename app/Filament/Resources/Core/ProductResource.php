@@ -46,8 +46,6 @@ class ProductResource extends Resource
     public static function getNavigationLabel() : string{
         return __("Product");
     }
-  
-
 
     public static function form(Form $form): Form
     {
