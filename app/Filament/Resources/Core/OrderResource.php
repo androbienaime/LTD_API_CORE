@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Core;
 
+use Exception;
 use Filament\Forms;
 use Filament\Tables;
 use Filament\Forms\Get;
@@ -43,7 +44,7 @@ use Thiktak\FilamentNestedBuilderForm\Forms\Components\NestedSubBuilder;
 class OrderResource extends Resource
 {
     protected static ?string $model = Order::class;
-
+    protected static $values = [];
     // protected static ?string $navigationIcon = 'heroicon-o-shopping-bag';
 
     public static function getNavigationGroup() : string {
@@ -135,22 +136,38 @@ class OrderResource extends Resource
                                 ->createOptionForm([
                                     self::prod(),
                                 ])
-                                ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
-                                        $product = Product::find($get('product_id'));
-                                        if(self::hasDeclinaitions(Product::find($get('product_id')))){
+                                ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, $state) {
+                                    self::updateSubTotal($get, $set);    
+                                    $product = Product::find($get('product_id'));
+                                        if($product != null && self::hasDeclinaitions(Product::find($get('product_id')))){
                                             self::updateFieldsDeclination($product, $set);
                                         }
                                 }),
                                 TextInput::make("quantity")
                                     ->numeric()
                                     ->required()
-                                    ->default(1),
+                                    ->live(onBlur: true)
+                                    ->default(1)
+                                    ->afterStateUpdated(function(Get $get, Set $set){
+                                        self::updateSubTotal($get, $set);
+                                    }),
+                                TextInput::make("sub_totals")
+                                    ->numeric()
+                                    ->disabled()
+                                    ->prefix("$")
+                                    ->default(0),
+                                TextInput::make("declination_price")
+                                    ->numeric()
+                                    ->disabled()
+                                    ->hidden(true)
+                                    ->prefix("$")
+                                    ->default(0),
                                 Grid::make()
                                     ->schema([
-                                        Grid::make("dec")
-                                            ->schema(function(Get $get){
-                                                $fields = $get("dyc") ?? [];
-                                                return self::GenerateFields($fields);
+                                        Grid::make("declination")
+                                            ->schema(function(Get $get, $state, Set $set){
+                                                $fields = $get("declination") ?? [];
+                                                return self::GenerateFields($fields, [$state, $get, $set]);
 
                                         })->columns(2)
     
@@ -171,7 +188,6 @@ class OrderResource extends Resource
 //                            ->itemLabel(fn (array $state): ?string =>
 //                                self::labelProduct(self::getProduct($state['product_id'])) ?? null)
                             ->addActionLabel(__("Add products"))
-                            ->addAction(fn(Action $action) =>$action->label("Hello"))
                     ])->columns(1),
 
               Section::make()
@@ -307,6 +323,15 @@ class OrderResource extends Resource
         self::updateBalance($get, $set);
     }
 
+    public static function updateSubTotal($get, $set){
+        if(!is_null(Product::find($get('product_id')))){
+            $product = Product::find($get('product_id'));
+            $declinationPrice = $get("declination_price");
+
+            $set("sub_totals", "". ($product->price+$declinationPrice)*$get("quantity"));
+        }
+
+    }
     private static function updateBalance(Get $get, Set $set){
         $totals = $get("total_amount_order");
         $amount = $get("order_amount");
@@ -323,7 +348,10 @@ class OrderResource extends Resource
     }
     
     public static function hasDeclinaitions(?Product $product){
-        if($product == null){ return; } 
+        if($product == null){ 
+            return; 
+        }
+
         $hasDeclination = false;
         if($product->product_with_declination == true && $product->declinations->count() > 0){
             $hasDeclination = true;
@@ -332,7 +360,48 @@ class OrderResource extends Resource
 
         return $hasDeclination;
     }
+    public static function afterStateUp($stateNatif, $state, $get, $set){
+        if($get("product_id") != null){
+            $product = Product::find($get('product_id'));
+            if(self::hasDeclinaitions($product)){
+                $options = [];
+                foreach($product->declinations as $pd){
+                    foreach($pd->values as $p){
+                        $attribute = $p->attributeValue->first()->attribute;
+                        self::attributesExist($options, $attribute) ?: $options[$attribute->id][] = $attribute;
+                    }
+                    
+                }
+                
+                self::$values = array_map(function($option) use($state){
+                        if(isset($state[$option[0]->name])){
+                            return $state[$option[0]->name];
+                        }
+                }, $options);
+                $valuesId = self::$values;
 
+                $product2 = Product::with("declinations.values")->find($product)->first();
+                $declinations = $product2->declinations->filter(function($declination) use ($valuesId){
+                        $declinationTagId = $declination->values->pluck("id")->toArray();
+                        return !array_diff($valuesId, $declinationTagId);
+                });
+
+                if(is_null($stateNatif)){
+                    $set("declination_price", 0);
+                    self::updateSubTotal($get, $set);
+
+                }
+
+                if(!is_null($declinations->first())){
+                    $declination = $declinations->first();
+                    $set("declination_price", $declination->price);
+                    self::updateSubTotal($get, $set);
+                }
+            }
+        }
+
+        
+    }
     public static function updateFieldsDeclination($product, $set){
         $options = [];
         foreach($product->declinations as $pd){
@@ -343,18 +412,26 @@ class OrderResource extends Resource
             
         }
 
-        $fiel = [];
+        $fields = []; 
         foreach($options as $key => $value){
-                $fiel[] = [
+                $values = [];
+               foreach($value as $val){
+                    if(!in_array($val->id, $values)){
+                        $values[$val->id] = $val->value;
+                    }
+               }
+
+                $fields[] = [
                     "type" => "select",
                     "name" => Attribute::find($key)->name,
                     "label" => Attribute::find($key)->name,
-                    "options" => $value,
+                    "options" => $values,
                     "required" => true,
+                    'callback' => "afterStateUp",
                 ];
         }
-        $fields = self::Fields();
-        $set("dyc", $fiel);
+        // $fields = self::Fields();
+        $set("declination", $fields);
         // dd($options);
     }
 
@@ -398,10 +475,10 @@ class OrderResource extends Resource
         ];
     }
 
-    public static function GenerateFields(array $fields){
-        return array_map(function($field) {
+    
+    public static function GenerateFields(array $fields, $params = null){
+        return array_map(function($field) use ($params) {
             $input = Grid::make()->schema([]);
-            
 
             switch($field["type"] ){
             
@@ -414,19 +491,48 @@ class OrderResource extends Resource
                     if (isset($field['live'])) {
                         $input->live($field['live']);
                     }
-            
+                    
                     if (isset($field['callback'])) {
-                        $input->afterStateUpdated($field['callback']);
+                        dd("opl");
+                        if(method_exists($this, $field['callback'])) {
+                            dd("okl");
+                            $input->afterStateUpdated($this->{$field['callback']}(...));
+                        }
+                       // $input->afterStateUpdated($field['callback']);
                     }
                     break;
                 }
                 case "select" :{
                     $input = Select::make($field['name'])
                     ->options(array_map(function($val){
-                        return [$val->id] = $val->value;
+                        return $val;
                     }, $field["options"]))
                     ->required($field['required'] ?? false)
                     ->lazy($field['lazy'] ?? false);
+
+                    // if (isset($field['callback'])) {
+                    //     if(method_exists(self::class, $field['callback'])) {
+                    //         $input->afterStateUpdated(call_user_func_array([self::class,  $field['callback']], $params));
+                    //     }else {
+                    //     throw new Exception("Le callback ou la méthode est invalide.");
+                    // }
+                    //    // $input->afterStateUpdated($field['callback']);
+                    // }
+                    if (isset($field['callback'])) {
+                        $callbackMethod = $field['callback'];
+                    
+                        if (method_exists(self::class, $callbackMethod)) {
+                            // Utilisation correcte en passant une fonction anonyme en tant que callback
+                            $input->afterStateUpdated(function($state) use ($callbackMethod, $params) {
+                                // Ajoutez $state aux params si nécessaire
+                                $paramsWithState = array_merge([$state], $params); // Ajoute $state comme premier paramètre
+
+                                call_user_func_array([self::class, $callbackMethod],  $paramsWithState);
+                            });
+                        } else {
+                            echo "Method " . $callbackMethod . " does not exist in class " . self::class . "<br>";
+                        }
+                    }
                 }
             }
             
