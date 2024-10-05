@@ -45,8 +45,9 @@ class ProductDeclinations
                                 ->label('Valeur')
                                 ->multiple()
                                 ->options(function () {
-                                    self::getValues();                              
+                                    return self::getValues();                              
                                 })
+                                ->preload()
                                 // ->saveRelationshipsUsing(function ($component, $state, $record) {
                                 //     // Synchroniser les catégories dans la table pivot sans toucher à `category_id` du modèle principal
                                 //     $record->declinationValues()->attach($state);
@@ -130,14 +131,12 @@ class ProductDeclinations
                         $options = [];
                         foreach($data["selected_values"] as $p){
                             $attribute = AttributeValue::with("attribute")->find($p)->attribute;
-                            self::attributesExist($options, $attribute) ?: $options[$attribute->id][] = Value::all()->find($p);
+                            self::attributesExist($options, $attribute) ? $options[$attribute->id][] = Value::all()->find($p) : $options[$attribute->id][] = Value::all()->find($p);
                         }
-                        
                         // Générer les combinaisons
                         $combinations = self::generateCombinations($options);
                         foreach( $combinations as $combination ){
                             $items = $get("declinations") ?? [];
-                            
                            $exist = self::combinationExist($combination, $items);
                             if($exist === false){
                                 $items[] = [

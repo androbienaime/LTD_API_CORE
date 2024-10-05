@@ -22,4 +22,6 @@ trait ProductTrait
         // Si aucune correspondance n'a été trouvée, retourner false
         return false;
     }
+
+
 }
