@@ -16,7 +16,7 @@ class CreateOrder extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-
+        // dd($data);
         $data['reference_order'] = "FA".Carbon::now()->format("mY")."D".rand(1000, 9999);
         $data['secure_key'] =  Str::random(64);
 

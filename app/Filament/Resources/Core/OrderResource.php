@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\Core;
 
+use App\Core\Trait\GenerateFieldsTrait;
+use App\Core\Trait\ProductTrait;
+use Closure;
 use Exception;
 use Filament\Forms;
 use Filament\Tables;
@@ -13,13 +16,19 @@ use Filament\Tables\Table;
 use Illuminate\Support\Str;
 use App\Models\Core\Product;
 use App\Models\Core\Attribute;
+use Filament\Facades\Filament;
+use App\Models\Core\Declination;
 use App\Models\Core\OrderStatus;
 use Filament\Resources\Resource;
+use App\Core\Class\GenerateFields;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Section;
 use Filament\Resources\Components\Tab;
+use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\Livewire;
 use Illuminate\Database\Eloquent\Model;
 use Filament\Forms\Components\TextInput;
 use Filament\Tables\Columns\ImageColumn;
@@ -43,6 +52,8 @@ use Thiktak\FilamentNestedBuilderForm\Forms\Components\NestedSubBuilder;
 
 class OrderResource extends Resource
 {
+    use GenerateFieldsTrait;
+    
     protected static ?string $model = Order::class;
     protected static $values = [];
     // protected static ?string $navigationIcon = 'heroicon-o-shopping-bag';
@@ -55,6 +66,7 @@ class OrderResource extends Resource
         return __("Orders");
     }
 
+    
     public static function form(Form $form): Form
     {
         return $form
@@ -137,11 +149,18 @@ class OrderResource extends Resource
                                     self::prod(),
                                 ])
                                 ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, $state) {
-                                    self::updateSubTotal($get, $set);    
+                                    self::updateSubTotal($get, $set);
                                     $product = Product::find($get('product_id'));
                                         if($product != null && self::hasDeclinaitions(Product::find($get('product_id')))){
                                             self::updateFieldsDeclination($product, $set);
                                         }
+                                }) 
+                                ->afterStateHydrated(function (Forms\Get $get, Forms\Set $set, $state, $record) {
+                                    $product = Product::find($get('product_id'));
+                                        if($product != null && self::hasDeclinaitions(Product::find($get('product_id')))){
+                                            self::updateFieldsDeclination($product, $set, $record);
+                                        }
+                                        self::updateSubTotal($get, $set);
                                 }),
                                 TextInput::make("quantity")
                                     ->numeric()
@@ -154,21 +173,23 @@ class OrderResource extends Resource
                                 TextInput::make("sub_totals")
                                     ->numeric()
                                     ->disabled()
+                                    ->dehydrated(true)
+                                    ->reactive()
                                     ->prefix("$")
-                                    ->default(0),
-                                TextInput::make("declination_price")
-                                    ->numeric()
-                                    ->disabled()
-                                    ->hidden(true)
-                                    ->prefix("$")
-                                    ->default(0),
+                                    ->default(0)
+                                    ->afterStateUpdated(function(Get $get, Set $set, $livewire){
+                                        self::updateTotals($get, $set);
+                                    }),
+                                TextInput::make("declination_id")
+                                    ->label("")
+                                    ->extraAttributes(["class" => "hidden"]),
                                 Grid::make()
                                     ->schema([
-                                        Grid::make("declination")
-                                            ->schema(function(Get $get, $state, Set $set){
+                                        Grid::make("declinations")
+                                        ->schema(function(Get $get, $state, Set $set, $livewire){                                               
                                                 $fields = $get("declination") ?? [];
                                                 return self::GenerateFields($fields, [$state, $get, $set]);
-
+                                                // return GenerateFields::Generate($fields, [$state, $get, $set]);
                                         })->columns(2)
     
                                     ])
@@ -177,14 +198,18 @@ class OrderResource extends Resource
                                     )
                             ])
                             ->columns(3)
-                            ->collapsed()
+                            // ->collapsed()
                             ->minItems(1)
                             ->live()
+                            ->reactive()
                             ->reorderable(true)
                             ->reorderableWithButtons()
-                            ->afterStateUpdated(function (Get $get, Set $set) {
+                            ->afterStateUpdated(function (Get $get, Set $set, $livewire) {
                                 self::updateTotals($get, $set);
                             })
+                            // ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array{
+                            // //    dd($data); // return self::processFillTable($data, Delivery::class, "delivery_id");
+                            //  })
 //                            ->itemLabel(fn (array $state): ?string =>
 //                                self::labelProduct(self::getProduct($state['product_id'])) ?? null)
                             ->addActionLabel(__("Add products"))
@@ -195,6 +220,7 @@ class OrderResource extends Resource
                       TextInput::make('total_amount_order')
                           ->label(__("Totals"))
                           ->prefix('$')
+                          ->default(0)
                           ->required(),
                       Forms\Components\TextInput::make('order_amount')
                           ->label(__("Payment"))
@@ -308,16 +334,15 @@ class OrderResource extends Resource
     public static function updateTotals(Get $get, Set $set): void
     {
         $selectedProducts = collect($get('orderProducts'))->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
-
         $prices = Product::find($selectedProducts->pluck('product_id'))->pluck('price', 'id');
+       
+        $subtotal = $selectedProducts->reduce(function ($subtotal, $product)use($prices) {
+            return $subtotal + $product["sub_totals"];
 
-        $subtotal = $selectedProducts->reduce(function ($subtotal, $product) use ($prices) {
-            return $subtotal + ($prices[$product['product_id']] * $product['quantity']);
         }, 0);
-
-
         // Update the state with the new values
        // $set('subtotal', number_format($subtotal, 2, '.', ''));
+       
         $set('total_amount_order', number_format($subtotal + ($subtotal * ($get('taxes') / 100)), 2, '.', ''));
 
         self::updateBalance($get, $set);
@@ -326,9 +351,8 @@ class OrderResource extends Resource
     public static function updateSubTotal($get, $set){
         if(!is_null(Product::find($get('product_id')))){
             $product = Product::find($get('product_id'));
-            $declinationPrice = $get("declination_price");
-
-            $set("sub_totals", "". ($product->price+$declinationPrice)*$get("quantity"));
+            $declinationPrice = Declination::find($get("declination_id"))->price ?? 0;
+            $set("sub_totals", ($product->price+$declinationPrice)*$get("quantity"));
         }
 
     }
@@ -360,7 +384,7 @@ class OrderResource extends Resource
 
         return $hasDeclination;
     }
-    public static function afterStateUp($stateNatif, $state, $get, $set){
+    public static function afterStateUpdated($stateNatif, $state, $get, $set){
         if($get("product_id") != null){
             $product = Product::find($get('product_id'));
             if(self::hasDeclinaitions($product)){
@@ -387,14 +411,17 @@ class OrderResource extends Resource
                 });
 
                 if(is_null($stateNatif)){
-                    $set("declination_price", 0);
+                    $set("declination_id", null);
                     self::updateSubTotal($get, $set);
 
                 }
 
                 if(!is_null($declinations->first())){
                     $declination = $declinations->first();
-                    $set("declination_price", $declination->price);
+                    $set("declination_id", $declination->id);
+                    self::updateSubTotal($get, $set);
+                }else{
+                    $set("declination_id", null);
                     self::updateSubTotal($get, $set);
                 }
             }
@@ -402,16 +429,16 @@ class OrderResource extends Resource
 
         
     }
-    public static function updateFieldsDeclination($product, $set){
+    public static function updateFieldsDeclination($product, $set, $record = null){
         $options = [];
+        $i=0;
         foreach($product->declinations as $pd){
-            foreach($pd->values as $p){
+            foreach($pd->values as $p){$i++;
                 $attribute = $p->attributeValue->first()->attribute;
-                self::attributesExist($options, $attribute) ?: $options[$attribute->id][] = $p;
+                self::attributesExist($options, $attribute) ?  $options[$attribute->id][] = $p : $options[$attribute->id][] = $p;
             }
             
         }
-
         $fields = []; 
         foreach($options as $key => $value){
                 $values = [];
@@ -420,21 +447,42 @@ class OrderResource extends Resource
                         $values[$val->id] = $val->value;
                     }
                }
-
+            //    dd($options);
                 $fields[] = [
                     "type" => "select",
                     "name" => Attribute::find($key)->name,
                     "label" => Attribute::find($key)->name,
                     "options" => $values,
+                    "live" => true,
+                    "dehydrated"=>false,
                     "required" => true,
-                    'callback' => "afterStateUp",
+                    "default"=> self::getDeclinationRecord($record, $key),
+                    'callback' => ["afterStateUpdated" =>[]],
                 ];
         }
         // $fields = self::Fields();
         $set("declination", $fields);
+   
         // dd($options);
     }
-
+    public static function getDeclinationRecord($record = null, $key){
+        $result = null;
+        if(!is_null($record)){
+            $declinationRecord = $record->declination_id;
+            if(!is_null($declinationRecord)){
+            $values = Declination::all()->find($declinationRecord)->values;
+                
+                if(count($values) > 0){
+                    foreach ($values as $value) {
+                        if($value->attributeValue->first()->attribute->id == $key){
+                            $result = $value->id;
+                        }
+                    }
+                }
+            }
+        }
+        return $result;
+    }
     public static function attributesExist($options, $attributes){
             // Parcourir chaque groupe d'options
         foreach ($options as $attributeName => $values) {
@@ -450,93 +498,6 @@ class OrderResource extends Resource
         // Si aucune correspondance n'a été trouvée, retourner false
         return false;
     }
-
-    public static function Fields(){
-       return $fields = [
-            [
-                'type' => 'input',
-                'name' => 'name',
-                'label' =>'salut',
-                'required' => true,
-                'lazy' => true,
-                // 'callback' => function (Get $get, Set $set) {
-                //     $set('slug', Product::createUniqueSlug($get('name')));
-                // },
-                'maxLength' => 255,
-            ],
-            [
-                'type' => 'select',
-                'name' => 'slug',
-                'label' => "geri",
-                'live' => true,
-                'required' => true,
-                'maxLength' => 255,
-            ],
-        ];
-    }
-
     
-    public static function GenerateFields(array $fields, $params = null){
-        return array_map(function($field) use ($params) {
-            $input = Grid::make()->schema([]);
 
-            switch($field["type"] ){
-            
-                case "input":{
-                    $input =TextInput::make($field['name'])
-                    ->required($field['required'] ?? false)
-                    ->lazy($field['lazy'] ?? false)
-                    ->maxLength($field['maxLength'] ?? null);
-        
-                    if (isset($field['live'])) {
-                        $input->live($field['live']);
-                    }
-                    
-                    if (isset($field['callback'])) {
-                        dd("opl");
-                        if(method_exists($this, $field['callback'])) {
-                            dd("okl");
-                            $input->afterStateUpdated($this->{$field['callback']}(...));
-                        }
-                       // $input->afterStateUpdated($field['callback']);
-                    }
-                    break;
-                }
-                case "select" :{
-                    $input = Select::make($field['name'])
-                    ->options(array_map(function($val){
-                        return $val;
-                    }, $field["options"]))
-                    ->required($field['required'] ?? false)
-                    ->lazy($field['lazy'] ?? false);
-
-                    // if (isset($field['callback'])) {
-                    //     if(method_exists(self::class, $field['callback'])) {
-                    //         $input->afterStateUpdated(call_user_func_array([self::class,  $field['callback']], $params));
-                    //     }else {
-                    //     throw new Exception("Le callback ou la méthode est invalide.");
-                    // }
-                    //    // $input->afterStateUpdated($field['callback']);
-                    // }
-                    if (isset($field['callback'])) {
-                        $callbackMethod = $field['callback'];
-                    
-                        if (method_exists(self::class, $callbackMethod)) {
-                            // Utilisation correcte en passant une fonction anonyme en tant que callback
-                            $input->afterStateUpdated(function($state) use ($callbackMethod, $params) {
-                                // Ajoutez $state aux params si nécessaire
-                                $paramsWithState = array_merge([$state], $params); // Ajoute $state comme premier paramètre
-
-                                call_user_func_array([self::class, $callbackMethod],  $paramsWithState);
-                            });
-                        } else {
-                            echo "Method " . $callbackMethod . " does not exist in class " . self::class . "<br>";
-                        }
-                    }
-                }
-            }
-            
-            return $input;
-        }, $fields);
-    }
 }
