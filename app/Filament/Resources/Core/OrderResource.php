@@ -48,11 +48,13 @@ use App\Core\ResourceModules\Product\ProductStockAndPrices;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Pelmered\FilamentMoneyField\Tables\Columns\MoneyColumn;
 use App\Filament\Resources\Core\OrderResource\RelationManagers;
+use Carbon\Carbon;
+use Filament\Forms\Concerns\InteractsWithForms;
 use Thiktak\FilamentNestedBuilderForm\Forms\Components\NestedSubBuilder;
 
 class OrderResource extends Resource
 {
-    use GenerateFieldsTrait;
+    use GenerateFieldsTrait, ProductTrait;
     
     protected static ?string $model = Order::class;
     protected static $values = [];
@@ -149,15 +151,20 @@ class OrderResource extends Resource
                                     self::prod(),
                                 ])
                                 ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, $state) {
-                                    self::updateSubTotal($get, $set);
                                     $product = Product::find($get('product_id'));
-                                        if($product != null && self::hasDeclinaitions(Product::find($get('product_id')))){
+                                    if($product != null){
+                                        $discount = self::productDiscount($product);
+                                        $set("discount", $discount);
+
+                                        if(self::hasDeclinations(Product::find($get('product_id')))){
                                             self::updateFieldsDeclination($product, $set);
                                         }
+                                        self::updateSubTotal($get, $set);
+                                    }
                                 }) 
                                 ->afterStateHydrated(function (Forms\Get $get, Forms\Set $set, $state, $record) {
                                     $product = Product::find($get('product_id'));
-                                        if($product != null && self::hasDeclinaitions(Product::find($get('product_id')))){
+                                        if($product != null && self::hasDeclinations(Product::find($get('product_id')))){
                                             self::updateFieldsDeclination($product, $set, $record);
                                         }
                                         self::updateSubTotal($get, $set);
@@ -170,6 +177,12 @@ class OrderResource extends Resource
                                     ->afterStateUpdated(function(Get $get, Set $set){
                                         self::updateSubTotal($get, $set);
                                     }),
+                                    TextInput::make("discount")
+                                    ->numeric()
+                                    ->disabled()
+                                    ->dehydrated(true)
+                                    ->prefix("$")
+                                    ->default(0),
                                 TextInput::make("sub_totals")
                                     ->numeric()
                                     ->disabled()
@@ -194,10 +207,10 @@ class OrderResource extends Resource
     
                                     ])
                                     ->hidden(fn(Get $get) => 
-                                       !self::hasDeclinaitions(Product::find($get('product_id')))
+                                       !self::hasDeclinations(Product::find($get('product_id')))
                                     )
                             ])
-                            ->columns(3)
+                            ->columns(4)
                             // ->collapsed()
                             ->minItems(1)
                             ->live()
@@ -351,8 +364,10 @@ class OrderResource extends Resource
     public static function updateSubTotal($get, $set){
         if(!is_null(Product::find($get('product_id')))){
             $product = Product::find($get('product_id'));
+            $discount = self::productDiscount($product);
+
             $declinationPrice = Declination::find($get("declination_id"))->price ?? 0;
-            $set("sub_totals", ($product->price+$declinationPrice)*$get("quantity"));
+            $set("sub_totals", ($product->price+$declinationPrice-$discount)*$get("quantity"));
         }
 
     }
@@ -371,23 +386,11 @@ class OrderResource extends Resource
        return Product::all()->where("id", $id)->first();
     }
     
-    public static function hasDeclinaitions(?Product $product){
-        if($product == null){ 
-            return; 
-        }
 
-        $hasDeclination = false;
-        if($product->product_with_declination == true && $product->declinations->count() > 0){
-            $hasDeclination = true;
-           //
-        }
-
-        return $hasDeclination;
-    }
     public static function afterStateUpdated($stateNatif, $state, $get, $set){
         if($get("product_id") != null){
             $product = Product::find($get('product_id'));
-            if(self::hasDeclinaitions($product)){
+            if(self::hasDeclinations($product)){
                 $options = [];
                 foreach($product->declinations as $pd){
                     foreach($pd->values as $p){
@@ -397,14 +400,13 @@ class OrderResource extends Resource
                     
                 }
                 
-                self::$values = array_map(function($option) use($state){
+                $valuesId = array_map(function($option) use($state){
                         if(isset($state[$option[0]->name])){
                             return $state[$option[0]->name];
                         }
                 }, $options);
-                $valuesId = self::$values;
 
-                $product2 = Product::with("declinations.values")->find($product)->first();
+                $product2 = Product::with("declinations.values")->find($product->id);
                 $declinations = $product2->declinations->filter(function($declination) use ($valuesId){
                         $declinationTagId = $declination->values->pluck("id")->toArray();
                         return !array_diff($valuesId, $declinationTagId);
@@ -447,7 +449,6 @@ class OrderResource extends Resource
                         $values[$val->id] = $val->value;
                     }
                }
-            //    dd($options);
                 $fields[] = [
                     "type" => "select",
                     "name" => Attribute::find($key)->name,
@@ -460,10 +461,8 @@ class OrderResource extends Resource
                     'callback' => ["afterStateUpdated" =>[]],
                 ];
         }
-        // $fields = self::Fields();
-        $set("declination", $fields);
-   
-        // dd($options);
+
+        $set("declination", $fields);   
     }
     public static function getDeclinationRecord($record = null, $key){
         $result = null;
@@ -483,21 +482,5 @@ class OrderResource extends Resource
         }
         return $result;
     }
-    public static function attributesExist($options, $attributes){
-            // Parcourir chaque groupe d'options
-        foreach ($options as $attributeName => $values) {
-            // Parcourir les sous-valeurs du tableau (les sous-éléments)
-            foreach ($values as $option) {
-                // Vérifier si l'ID correspond
-                if ($option->id == $attributes->id) {
-                    return true; // Si trouvé, retourner immédiatement true
-                }
-            }
-        }
-
-        // Si aucune correspondance n'a été trouvée, retourner false
-        return false;
-    }
-    
 
 }

@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::table('order_product', function (Blueprint $table) {
             $table->foreignId('declination_id')->nullable(true);
             $table->decimal("sub_totals", 16, 5)->default(0);
+            $table->decimal("discount", 16, 5)->default(0);
         });
     }
 
@@ -25,6 +26,7 @@ return new class extends Migration
         Schema::table('order_product', function (Blueprint $table) {
             $table->dropColumn('declination_id');
             $table->dropColumn('sub_totals');
+            $table->dropColumn('discount');
         });
     }
 };

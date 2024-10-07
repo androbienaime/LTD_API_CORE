@@ -6,6 +6,7 @@
 /storage/*.key
 /storage/app/public/*
 /storage/media-library/temp/*
+/resources/js/assets/*
 /vendor
 .env
 .env.backup

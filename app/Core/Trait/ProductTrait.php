@@ -2,6 +2,9 @@
 
 namespace App\Core\Trait;
 
+use Carbon\Carbon;
+use App\Models\Core\Product;
+
 trait ProductTrait
 {
     public static function attributesExist($options, $attributes){
@@ -23,5 +26,30 @@ trait ProductTrait
         return false;
     }
 
+    public static function hasDeclinations(?Product $product){
+        if($product == null){ 
+            return; 
+        }
+
+        $hasDeclination = false;
+        if($product->product_with_declination == true && $product->declinations->count() > 0){
+            $hasDeclination = true;
+           //
+        }
+
+        return $hasDeclination;
+    }
+
+    public static function productDiscount(?Product $product){
+        $discount = 0;
+        if($product != null){
+            if($product->has_discount &&                                         
+                Carbon::parse($product->productDiscount->end_date)->isFuture()){
+                    $discount = $product->productDiscount->discount;
+            }
+        }
+
+        return $discount;
+    }
 
 }

@@ -59,8 +59,7 @@ trait GenerateFieldsTrait
                                 case 'afterStateUpdated':{
                                     $input->afterStateUpdated(
                                         function ($state) use ($callbackKey, $params) {
-                                            if (method_exists(self::class, $callbackKey)) {
-                                                // Add $state as the first parameter
+                                            if (method_exists(self::class, $callbackKey)) {                                                // Add $state as the first parameter
                                                 $paramsWithState = array_merge([$state], $params);
                                     
                                                 // Call the callback method with the state and other parameters
@@ -73,16 +72,6 @@ trait GenerateFieldsTrait
                                 }
                             }
                         }
-                        // if (method_exists(self::class, $callbackMethod)) {
-                        //     // Utilisation correcte en passant une fonction anonyme en tant que callback
-                        //     $input->afterStateUpdated(function($state) use ($callbackMethod, $params) {
-                        //         // dd($state);
-                        //         // Ajoutez $state aux params si nécessaire
-                        //         $paramsWithState = array_merge([$state], $params); // Ajoute $state comme premier paramètre
-
-                        //         call_user_func_array([self::class, $callbackMethod],  $paramsWithState);
-                        //     });
-                        // }
                     }
                 }
             }
@@ -90,4 +79,6 @@ trait GenerateFieldsTrait
             return $input;
         }, $fields);
     }
+
+
 }

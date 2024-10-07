@@ -104,8 +104,7 @@ class ProductStockAndPrices
                             ->schema([
                                 DateTimePicker::make('start_date')
                                 ->live()
-                                    ->rule('after:now')
-                                    ->label(__("Start Date")),
+                                ->label(__("Start Date")),
                                 DateTimePicker::make('end_date')
                                 ->live()
                                 ->rule('after:now')
