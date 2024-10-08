@@ -2,10 +2,9 @@
 
 namespace App\Filament\Resources\Core;
 
-use App\Core\Trait\GenerateFieldsTrait;
-use App\Core\Trait\ProductTrait;
 use Closure;
 use Exception;
+use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Tables;
 use Filament\Forms\Get;
@@ -13,10 +12,13 @@ use Filament\Forms\Set;
 use Filament\Forms\Form;
 use App\Models\Core\Order;
 use Filament\Tables\Table;
+use App\Core\Class\Coupons;
+use App\Models\Core\Coupon;
 use Illuminate\Support\Str;
 use App\Models\Core\Product;
 use App\Models\Core\Attribute;
 use Filament\Facades\Filament;
+use App\Core\Trait\ProductTrait;
 use App\Models\Core\Declination;
 use App\Models\Core\OrderStatus;
 use Filament\Resources\Resource;
@@ -27,16 +29,19 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Section;
 use Filament\Resources\Components\Tab;
+use App\Core\Trait\GenerateFieldsTrait;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Livewire;
 use Illuminate\Database\Eloquent\Model;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\ImageColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\Builder\Block;
 use function Symfony\Component\String\match;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Concerns\InteractsWithForms;
 use App\Core\ResourceModules\Product\ProductSeo;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Core\ResourceModules\Product\ProductDetails;
@@ -48,8 +53,6 @@ use App\Core\ResourceModules\Product\ProductStockAndPrices;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Pelmered\FilamentMoneyField\Tables\Columns\MoneyColumn;
 use App\Filament\Resources\Core\OrderResource\RelationManagers;
-use Carbon\Carbon;
-use Filament\Forms\Concerns\InteractsWithForms;
 use Thiktak\FilamentNestedBuilderForm\Forms\Components\NestedSubBuilder;
 
 class OrderResource extends Resource
@@ -141,7 +144,8 @@ class OrderResource extends Resource
                             ->relationship()
                             ->schema([
                                 Select::make('product_id')
-                                ->relationship(name:'product', titleAttribute:'name')
+                                ->relationship(name:'product', titleAttribute:'name', 
+                                    modifyQueryUsing: fn(Builder $query) => $query->where("status", true))
                                 ->getOptionLabelFromRecordUsing(fn (Model $record) => self::labelProduct($record))
                                 ->label(__("Product"))
                                 ->required()
@@ -193,9 +197,7 @@ class OrderResource extends Resource
                                     ->afterStateUpdated(function(Get $get, Set $set, $livewire){
                                         self::updateTotals($get, $set);
                                     }),
-                                TextInput::make("declination_id")
-                                    ->label("")
-                                    ->extraAttributes(["class" => "hidden"]),
+                                Hidden::make("declination_id"),
                                 Grid::make()
                                     ->schema([
                                         Grid::make("declinations")
@@ -228,10 +230,21 @@ class OrderResource extends Resource
                             ->addActionLabel(__("Add products"))
                     ])->columns(1),
 
+
               Section::make()
                   ->schema([
+                    Forms\Components\Grid::make()
+                    ->schema(self::couponColumn())
+                    ->columnSpanFull(),
+                    TextInput::make('total_discount')
+                          ->label(__("Discount"))
+                          ->prefix('$')
+                          ->disabled()
+                          ->default(0)
+                          ->required(),
                       TextInput::make('total_amount_order')
                           ->label(__("Totals"))
+                          ->readOnly()
                           ->prefix('$')
                           ->default(0)
                           ->required(),
@@ -247,7 +260,7 @@ class OrderResource extends Resource
                           ->label(__("Balance"))
                           ->disabled()
                           ->numeric(),
-                  ])->columns(2),
+                  ])->columns(3),
         ]);
     }
     public static function table(Table $table): Table
@@ -344,21 +357,43 @@ class OrderResource extends Resource
             ]);
     }
 
-    public static function updateTotals(Get $get, Set $set): void
+    public static function updateTotals(Get $get, Set $set): float
     {
         $selectedProducts = collect($get('orderProducts'))->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
         $prices = Product::find($selectedProducts->pluck('product_id'))->pluck('price', 'id');
        
-        $subtotal = $selectedProducts->reduce(function ($subtotal, $product)use($prices) {
-            return $subtotal + $product["sub_totals"];
-
-        }, 0);
+        $subtotal = $selectedProducts->reduce(function ($acc, $product) use ($prices) {
+            $productId = $product["product_id"];
+            $productModel = Product::find($productId);
+            $quantity = $product["quantity"];
+            
+            $productPrice = $prices[$productId];
+            $productDiscount = self::productDiscount($productModel);
+            
+            // Calculate the subtotal and discount total
+            $acc['total'] += ($productPrice - $productDiscount) * $quantity;
+            $acc['discountTotal'] += $productDiscount * $quantity;
+        
+            return $acc;
+        }, ['total' => 0, 'discountTotal' => 0]);
         // Update the state with the new values
        // $set('subtotal', number_format($subtotal, 2, '.', ''));
        
-        $set('total_amount_order', number_format($subtotal + ($subtotal * ($get('taxes') / 100)), 2, '.', ''));
+        $total = $subtotal["total"] + ($subtotal["total"] * ($get('taxes') / 100));
+        
+        // Discount if coupon valid
+        $code = $get("coupon");
+        (!is_null($code)) ?: $code = "";
 
+        $getCouponDiscount = (new Coupons())
+            ->products($selectedProducts->all())
+            ->discount(code : $code, total : $total);
+        
+        $set('total_amount_order', number_format($total - $getCouponDiscount, 2, '.', ''));
+        $set("total_discount", number_format($subtotal["discountTotal"] + $getCouponDiscount, 2, '.', ''));
         self::updateBalance($get, $set);
+
+        return $total;
     }
 
     public static function updateSubTotal($get, $set){
@@ -481,6 +516,64 @@ class OrderResource extends Resource
             }
         }
         return $result;
+    }
+
+    public static function couponColumn() : array{
+        return [
+            Forms\Components\Hidden::make('coupon_id'),
+            Forms\Components\TextInput::make('coupon')
+                ->label(trans('Coupon'))
+                ->dehydrated(false)
+                ->hidden(fn($record) => $record)
+                ->suffixAction(
+                    Forms\Components\Actions\Action::make('apply')
+                        ->tooltip(trans('filament-ecommerce::messages.orders.actions.apply'))
+                        ->icon('heroicon-s-check')
+                        ->action(function (Forms\Get $get,Forms\Set $set){
+                            $coupon = Coupon::query()->where('code', $get('coupon'))->first();
+                            if($coupon){
+                                $total =0;
+                                $discount=0;
+                                $items = $get('orderProducts');
+                                
+                                $productIds = [];
+                                foreach ($items as $orderItem){
+                                    $productIds[] = $orderItem['product_id']; 
+                                    $discount += self::productDiscount(Product::find($orderItem['product_id']));
+
+                                }
+                                $total = self::updateTotals($get, $set);
+
+                                $getCouponDiscount = (new Coupons())
+                                                    ->products($productIds)
+                                                    ->discount(code : $get("coupon"), total : $total);
+                                if($getCouponDiscount){
+                                    $discount += $getCouponDiscount;
+
+                                    $set("total_discount", $discount);
+                                    $set("coupon_id", $coupon->id);
+                                    self::updateTotals($get, $set);
+                                    
+                                    Notification::make()
+                                    ->title(trans('Coupons appliquer'))
+                                    ->success()
+                                    ->send();
+                                }else{
+                                    Notification::make()
+                                    ->title("Coupon non valid")
+                                    ->danger()
+                                    ->send();
+                                }
+                            }else{
+                                Notification::make()
+                                    ->title("Ce coupon n'existe pas")
+                                    ->danger()
+                                    ->send();
+                            }
+
+                        })
+                )->columnSpanFull(),
+            ];
     }
 
 }
