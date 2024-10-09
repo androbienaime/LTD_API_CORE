@@ -165,6 +165,8 @@ class OrderResource extends Resource
                                         }
                                         self::updateSubTotal($get, $set);
                                     }
+
+                                    $set("delivery_id", null);
                                 }) 
                                 ->afterStateHydrated(function (Forms\Get $get, Forms\Set $set, $state, $record) {
                                     $product = Product::find($get('product_id'));
@@ -197,6 +199,25 @@ class OrderResource extends Resource
                                     ->afterStateUpdated(function(Get $get, Set $set, $livewire){
                                         self::updateTotals($get, $set);
                                     }),
+                                    Forms\Components\Select::make('delivery_id')
+                                    ->hidden(fn(callable $get) => !self::hasDelivery(Product::find($get("product_id"))))
+                                    ->options(function(callable $get){
+                                        $product = Product::find($get("product_id"));
+                                        $options = [];
+                                        if($product != null){
+                                            if(self::hasDelivery($product)){
+                                                foreach($product->deliveryProducts as $deliveryProduct){
+                                                    $dp = $deliveryProduct->delivery; $carrier_name = "";
+                                                    ($dp->carrier == null) ?: $carrier_name = "Carrier : " . $dp->carrier->carrier_name .", ";
+                                                    $options[$dp->id] = $carrier_name . "price : " . number_format($dp->costs, 2, '.', '');
+                                                }
+                                            }
+
+                                            return $options;
+                                        }
+                                    })
+                                    ->default(1)
+                                    ->required(),
                                 Hidden::make("declination_id"),
                                 Grid::make()
                                     ->schema([

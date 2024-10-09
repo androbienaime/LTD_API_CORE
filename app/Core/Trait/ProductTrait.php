@@ -52,4 +52,15 @@ trait ProductTrait
         return $discount;
     }
 
+    public static function hasDelivery(?Product $product){
+        $hasDelivery = false;
+        if($product != null){
+            if(count($product->deliveryProducts) > 0){
+                $hasDelivery = true;
+            }
+        }
+
+        return $hasDelivery;
+    }
+
 }
