@@ -40,4 +40,8 @@ class Order extends Model
         return $this->hasMany(DeliveryOrder::class);
     }
 
+    public function delivery() : BelongsTo{
+        return $this->belongsTo(Delivery::class);
+    }
+
 }
