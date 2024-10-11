@@ -4,6 +4,7 @@ namespace App\Core\Trait;
 
 use Carbon\Carbon;
 use App\Models\Core\Product;
+use App\Models\Core\Delivery;
 
 trait ProductTrait
 {
@@ -50,6 +51,17 @@ trait ProductTrait
         }
 
         return $discount;
+    }
+
+    public static function productDeliveryCosts(?Delivery $delivery){
+        $deliveryPrice = 0;
+       
+        if($delivery != null){
+            if($delivery->costs){
+                $deliveryPrice = $delivery->costs;
+            }
+        }
+        return $deliveryPrice;
     }
 
     public static function hasDelivery(?Product $product){

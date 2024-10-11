@@ -16,11 +16,15 @@ use App\Core\Class\Coupons;
 use App\Models\Core\Coupon;
 use Illuminate\Support\Str;
 use App\Models\Core\Product;
+use App\Models\Core\Delivery;
+use App\Models\Location\City;
 use App\Models\Core\Attribute;
+use App\Models\Location\State;
 use Filament\Facades\Filament;
 use App\Core\Trait\ProductTrait;
 use App\Models\Core\Declination;
 use App\Models\Core\OrderStatus;
+use App\Models\Location\Country;
 use Filament\Resources\Resource;
 use App\Core\Class\GenerateFields;
 use Filament\Forms\Components\Grid;
@@ -32,6 +36,7 @@ use Filament\Resources\Components\Tab;
 use App\Core\Trait\GenerateFieldsTrait;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Livewire;
+use Filament\Forms\Components\Repeater;
 use Illuminate\Database\Eloquent\Model;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -53,6 +58,9 @@ use App\Core\ResourceModules\Product\ProductStockAndPrices;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Pelmered\FilamentMoneyField\Tables\Columns\MoneyColumn;
 use App\Filament\Resources\Core\OrderResource\RelationManagers;
+use App\Models\Core\Address;
+use App\Models\Core\Customer;
+use Filament\Forms\Components\Toggle;
 use Thiktak\FilamentNestedBuilderForm\Forms\Components\NestedSubBuilder;
 
 class OrderResource extends Resource
@@ -76,7 +84,7 @@ class OrderResource extends Resource
     {
         return $form
             ->schema([
-                    Select::make('customer_id')
+                Select::make('customer_id')
                         ->relationship(
                             name:'customer',
                                 modifyQueryUsing: fn (Builder $query) => $query->orderBy('firstname')->orderBy('lastname'),
@@ -134,13 +142,13 @@ class OrderResource extends Resource
                                 ])->columns(2),
 
                         ]),
-                Forms\Components\Select::make('status_id')
+                Select::make('status_id')
                     ->relationship(name :'status', titleAttribute:'name')
                     ->default(1)
                     ->required(),
                 Section::make()
                     ->schema([
-                        Forms\Components\Repeater::make("orderProducts")
+                        Repeater::make("orderProducts")
                             ->relationship()
                             ->schema([
                                 Select::make('product_id')
@@ -216,17 +224,21 @@ class OrderResource extends Resource
                                             return $options;
                                         }
                                     })
-                                    ->default(1)
+                                    ->lazy()
+                                    ->afterStateUpdated(function(callable $get, callable $set){
+                                        self::updateTotals($get, $set);
+                                        self::updateSubTotal($get, $set);
+                                    })
                                     ->required(),
                                 Hidden::make("declination_id"),
                                 Grid::make()
                                     ->schema([
-                                        Grid::make("declinations")
+                                        Fieldset::make("declinations")
                                         ->schema(function(Get $get, $state, Set $set, $livewire){                                               
                                                 $fields = $get("declination") ?? [];
                                                 return self::GenerateFields($fields, [$state, $get, $set]);
-                                                // return GenerateFields::Generate($fields, [$state, $get, $set]);
-                                        })->columns(2)
+                                        })->label("Declination")
+                                        ->columns(2)
     
                                     ])
                                     ->hidden(fn(Get $get) => 
@@ -234,7 +246,7 @@ class OrderResource extends Resource
                                     )
                             ])
                             ->columns(4)
-                            // ->collapsed()
+                            ->collapsible()
                             ->minItems(1)
                             ->live()
                             ->reactive()
@@ -246,13 +258,122 @@ class OrderResource extends Resource
                             // ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array{
                             // //    dd($data); // return self::processFillTable($data, Delivery::class, "delivery_id");
                             //  })
-//                            ->itemLabel(fn (array $state): ?string =>
-//                                self::labelProduct(self::getProduct($state['product_id'])) ?? null)
+                           ->itemLabel(fn (array $state): ?string =>
+                               self::labelProduct(self::getProduct($state['product_id'])) ?? null)
                             ->addActionLabel(__("Add products"))
                     ])->columns(1),
 
+                Section::make()
+                    ->schema([
+                        Fieldset::make()
+                            ->relationship("delivery")
+                            ->schema([
+                                Grid::make()
+                                    ->schema([
+                                        TextInput::make('costs')
+                                                ->label(__("Price"))
+                                                ->prefix('$')
+                                                ->default(0)
+                                                ->required()
+                                                ->afterStateUpdated(fn(Get $get, Set $set) => self::updateTotals($get, $set)),
+                                        Toggle::make("use_customer_address")
+                                            ->label("Use customer address")
+                                            ->live(),
+                                    ])->columns(1)
+                                    ->columnSpan(1),
+                                Fieldset::make("Address")
+                                    // ->relationship("address", "id")
+                                    ->schema([
+                                        Select::make("country_id")
+                                            ->label("Country")
+                                            ->options(fn() => Country::all()->pluck("name", "id"))
+                                            ->searchable()
+                                            ->live()
+                                            ->required(),
+                                        Select::make("state_id")
+                                            ->label("State")
+                                            ->options(fn(callable $get) => State::where("country_id", $get("country_id"))->pluck("name", "id")->toArray())
+                                            ->live()
+                                            ->required()
+                                            ->searchable(),
+                                        Select::make("city_id")
+                                            ->options(fn(callable $get) => City::where("state_id", $get("state_id"))->pluck("name", "id")->toArray())
+                                            ->live()
+                                            ->required()
+                                            ->searchable(),
+                                        TextInput::make("address1")
+                                            ->label("Address 1"),
+                                        TextInput::make("phone")
+                                            ->label("phone"),
+                                        TextInput::make("email")
+                                            ->label("Email"),
+                                        Hidden::make("address_id"),
 
-              Section::make()
+                                    ])
+                                    ->hidden(function($livewire, $get){
+                                        $hidden = false;
+                                         if($get("use_customer_address") 
+                                         && self::hasCustomerAddress(Customer::find($livewire->data["customer_id"]))){
+                                            $hidden = true;
+                                        }
+                                        return $hidden;
+                                    })
+                                    ->columns(2)
+                                    ->columnSpan(1)
+                                    ->afterStateHydrated(function($record, $set){
+                                        if($record){
+                                            if($record->address_id != null){
+                                                $address = Address::find($record->address_id)->toArray();
+                                                foreach($address as $key => $value){
+                                                    if($key != "id"){
+                                                        $set($key, $value);
+                                                    }else{
+                                                        $set("address_id", $value);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    })
+
+                            ])
+                            ->mutateRelationshipDataBeforeCreateUsing(function(array $data, $livewire) : array{
+                                    
+                                    $costs = $data["costs"];
+                                    $use = $data["use_customer_address"];
+                                    unset($data["use_customer_address"]);
+                                    unset($data["costs"]);
+                                    $hasCustomer = self::hasCustomerAddress(Customer::find($livewire->data["customer_id"]));
+                                    $address_id = null;
+
+                                    ($hasCustomer && $use) ? $address_id = Customer::find($livewire->data["customer_id"])->addressCustomers->first()->address_id : $address_id = Address::createOrFirst($data)->id;
+                                    $delivery = [
+                                        "costs" => $costs, 
+                                        "address_id" => $address_id
+                                    ];
+                                    
+                                    unset($data);
+                                    
+                                    return $delivery;
+                            })
+                            ->mutateRelationshipDataBeforeSaveUsing(function(array $data): array{
+                                    $costs = $data["costs"];
+                                    $address_id = $data["address_id"];
+                                    unset($data["costs"]);
+                                    $address = Address::find($address_id);
+                                    if($address){
+                                        Address::find($address_id)->update($data);
+                                    }
+
+                                    $delivery = [
+                                        "costs" => $costs, 
+                                        "address_id" => $address_id
+                                    ];
+                                    
+                                    unset($data);
+                                return $delivery;
+                            })->columns(2)
+                    ]),
+                Section::make()
                   ->schema([
                     Forms\Components\Grid::make()
                     ->schema(self::couponColumn())
@@ -261,8 +382,7 @@ class OrderResource extends Resource
                           ->label(__("Discount"))
                           ->prefix('$')
                           ->disabled()
-                          ->default(0)
-                          ->required(),
+                          ->default(0),
                       TextInput::make('total_amount_order')
                           ->label(__("Totals"))
                           ->readOnly()
@@ -382,26 +502,24 @@ class OrderResource extends Resource
     {
         $selectedProducts = collect($get('orderProducts'))->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
         $prices = Product::find($selectedProducts->pluck('product_id'))->pluck('price', 'id');
-       
+        $costs = $get("delivery.costs");
+
         $subtotal = $selectedProducts->reduce(function ($acc, $product) use ($prices) {
             $productId = $product["product_id"];
             $productModel = Product::find($productId);
             $quantity = $product["quantity"];
-            
             $productPrice = $prices[$productId];
             $productDiscount = self::productDiscount($productModel);
             
             // Calculate the subtotal and discount total
             $acc['total'] += ($productPrice - $productDiscount) * $quantity;
             $acc['discountTotal'] += $productDiscount * $quantity;
-        
+            $acc['deliveryTotal'] += self::productDeliveryCosts(Delivery::find($product["delivery_id"]));
             return $acc;
-        }, ['total' => 0, 'discountTotal' => 0]);
-        // Update the state with the new values
-       // $set('subtotal', number_format($subtotal, 2, '.', ''));
-       
+        }, ['total' => 0, 'discountTotal' => 0, 'deliveryTotal' => 0]);
+
         $total = $subtotal["total"] + ($subtotal["total"] * ($get('taxes') / 100));
-        
+
         // Discount if coupon valid
         $code = $get("coupon");
         (!is_null($code)) ?: $code = "";
@@ -409,8 +527,8 @@ class OrderResource extends Resource
         $getCouponDiscount = (new Coupons())
             ->products($selectedProducts->all())
             ->discount(code : $code, total : $total);
-        
-        $set('total_amount_order', number_format($total - $getCouponDiscount, 2, '.', ''));
+
+        $set('total_amount_order', number_format(($total - $getCouponDiscount) + $subtotal["deliveryTotal"] + $costs, 2, '.', ''));
         $set("total_discount", number_format($subtotal["discountTotal"] + $getCouponDiscount, 2, '.', ''));
         self::updateBalance($get, $set);
 
@@ -421,9 +539,10 @@ class OrderResource extends Resource
         if(!is_null(Product::find($get('product_id')))){
             $product = Product::find($get('product_id'));
             $discount = self::productDiscount($product);
-
+            $delivery_price = self::productDeliveryCosts(Delivery::find($get("delivery_id")));
             $declinationPrice = Declination::find($get("declination_id"))->price ?? 0;
-            $set("sub_totals", ($product->price+$declinationPrice-$discount)*$get("quantity"));
+
+            $set("sub_totals", ($product->price+$declinationPrice+$delivery_price-$discount)*$get("quantity"));
         }
 
     }
@@ -433,7 +552,10 @@ class OrderResource extends Resource
         $set('balance', number_format($totals - $amount, 2, '.', ''));
     }
 
-    public static function labelProduct(Model $record){
+    public static function labelProduct(?Model $record){
+        if($record == null){
+            return;
+        }
         $price = number_format($record->price, 2, '.', '');
         return "{$record->name} (\${$price})";
     }
@@ -595,6 +717,17 @@ class OrderResource extends Resource
                         })
                 )->columnSpanFull(),
             ];
+    }
+
+    public static function hasCustomerAddress(?Customer $customer){
+        $hasAddress = false;
+        if($customer){
+            if($customer->addressCustomers()->count() > 0){
+                $hasAddress = true;
+            }
+        }
+
+        return $hasAddress;
     }
 
 }

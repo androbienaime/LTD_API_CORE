@@ -8,6 +8,7 @@ use App\Models\Core\DeliveryProduct;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Delivery extends Model
 {
@@ -18,7 +19,8 @@ class Delivery extends Model
         "depth",
         "weigth",
         "costs",
-        'delivery_mode'
+        'delivery_mode',
+        "address_id"
     ];
 
     public function addressDeliveries() : HasMany{
@@ -35,5 +37,9 @@ class Delivery extends Model
 
     public function carrier(){
         return $this->belongsTo(Carrier::class);
+    }
+
+    public function address() : BelongsTo{
+        return $this->belongsTo(Address::class);
     }
 }
