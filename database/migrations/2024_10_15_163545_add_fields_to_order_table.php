@@ -11,9 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('Orders', function (Blueprint $table) {
-            $table->foreignId("coupon_id")->nullable(true);
-            $table->foreignId("delivery_id")->nullable(true);
+        Schema::table('orders', function (Blueprint $table) {
+            $table->boolean("has_delivery")->nullable(true);
+            $table->decimal("balance", 16, 5)->default(0);
+            $table->decimal("total_discount", 16, 5)->default(0);
         });
     }
 
@@ -22,9 +23,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('Orders', function (Blueprint $table) {
-            $table->dropColumn("coupon_id");
-            $table->dropColumn("delivery_id");
+        Schema::table('orders', function (Blueprint $table) {
+            $table->drop("has_delivery");
         });
     }
 };

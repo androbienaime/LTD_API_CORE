@@ -36,10 +36,6 @@ class Order extends Model
         return $this->belongsTo(Customer::class);
     }
 
-    public function deliveryOrders() : HasMany{
-        return $this->hasMany(DeliveryOrder::class);
-    }
-
     public function delivery() : BelongsTo{
         return $this->belongsTo(Delivery::class);
     }

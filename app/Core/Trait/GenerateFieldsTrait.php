@@ -42,7 +42,7 @@ trait GenerateFieldsTrait
                         
                         )
                     ->required($field['required'] ?? false)
-                    ->live($field['live'] ?? false)
+                    ->live(onBlur: $field['live'] ?? false)
                     ->lazy($field['lazy'] ?? false);
                     if(isset($field['default'])){
                         $input->afterStateHydrated(function(Set $set) use($field){

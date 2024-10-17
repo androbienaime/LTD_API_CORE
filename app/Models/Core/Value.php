@@ -6,6 +6,7 @@ use App\Models\Core\AttributeValue;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Value extends Model
 {
@@ -20,5 +21,9 @@ class Value extends Model
     ];
     public function attributeValue() : HasMany{
         return $this->hasMany(AttributeValue::class);
+    }
+
+    public function attributes() : BelongsTo{
+        return $this->belongsTo(Attribute::class);
     }
 }

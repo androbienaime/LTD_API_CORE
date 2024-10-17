@@ -20,6 +20,8 @@ class Delivery extends Model
         "weigth",
         "costs",
         'delivery_mode',
+        "delivery_date",
+        "carrier_id",
         "address_id"
     ];
 

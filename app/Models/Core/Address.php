@@ -3,9 +3,13 @@
 namespace App\Models\Core;
 
 use App\Models\Core\Shop;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Location\City;
+use App\Models\Location\State;
+use App\Models\Location\Country;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Address extends Model
 {
@@ -29,5 +33,16 @@ class Address extends Model
 
     public function addressShops() : HasMany{
         return $this->hasMany(Shop::class);
+    }
+
+    public function country() : BelongsTo{
+        return $this->belongsTo(Country::class);
+    }
+    public function state() : BelongsTo{
+        return $this->belongsTo(State::class);
+    }
+
+    public function city() : BelongsTo{
+        return $this->belongsTo(City::class);
     }
 }

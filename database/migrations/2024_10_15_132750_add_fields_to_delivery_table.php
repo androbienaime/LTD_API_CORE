@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('Orders', function (Blueprint $table) {
-            $table->foreignId("coupon_id")->nullable(true);
-            $table->foreignId("delivery_id")->nullable(true);
+        Schema::table('deliveries', function (Blueprint $table) {
+            $table->dateTime("delivery_date")->nullable(true);
         });
     }
 
@@ -22,9 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('Orders', function (Blueprint $table) {
-            $table->dropColumn("coupon_id");
-            $table->dropColumn("delivery_id");
+        Schema::table('deliveries', function (Blueprint $table) {
+            $table->drop("delivery_date");
         });
     }
 };
