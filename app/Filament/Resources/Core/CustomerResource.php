@@ -60,7 +60,7 @@ class CustomerResource extends Resource
                                 ->maxLength(255),
                             Select::make("gender")
                                 ->options([
-                                    "male" => __("Male"),
+                                    "Male" => __("Male"),
                                     "Female" => __("Female")
                                 ])->default(1),
                             Forms\Components\DatePicker::make('date_of_birth'),
@@ -126,24 +126,26 @@ class CustomerResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('address_id')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('firstname')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('lastname')
+                Tables\Columns\TextColumn::make('fullname')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('middle_name')
+                    ->toggleable(isToggledHiddenByDefault:true)
                     ->searchable(),
                 Tables\Columns\TextColumn::make('gender')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('identityNumber_id')
                     ->numeric()
+                    ->toggleable(isToggledHiddenByDefault:true)
                     ->sortable(),
+                Tables\Columns\TextColumn::make('fullcustomeraddress')
+                ->label("Full address")
+                ->sortable(),
                 Tables\Columns\TextColumn::make('email')
+                    ->toggleable(isToggledHiddenByDefault:true)
                     ->searchable(),
                 Tables\Columns\TextColumn::make('date_of_birth')
                     ->date()
+                    ->toggleable(isToggledHiddenByDefault:true)
                     ->sortable(),
                 Tables\Columns\TextColumn::make('deleted_at')
                     ->dateTime()
