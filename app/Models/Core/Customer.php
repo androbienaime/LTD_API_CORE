@@ -2,6 +2,7 @@
 
 namespace App\Models\Core;
 
+use App\Core\Trait\CustomerTrait;
 use App\Models\Core\Order;
 use App\Models\Core\Product;
 use App\Models\Core\AddressCustomer;
@@ -9,10 +10,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Customer extends Model
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, InteractsWithMedia;
 
     protected $fillable = [
         "firstname",
@@ -28,6 +31,10 @@ class Customer extends Model
         return "{$this->firstname} {$this->lastname}";
     }
 
+    public function getFullCustomerAddressAttribute(){
+        $address = $this->addressCustomers?->first()->address;
+        return $address->getFullAddressAttribute();
+    }
     public function order(){
         return $this->belongsToMany(Order::class);
     }

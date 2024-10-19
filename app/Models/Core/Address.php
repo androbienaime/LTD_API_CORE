@@ -31,6 +31,10 @@ class Address extends Model
         "active"
     ];
 
+    public function getFullAddressAttribute(){
+        return "{$this->city?->name}, {$this->state?->name}, {$this->country?->name}";
+    }
+
     public function addressShops() : HasMany{
         return $this->hasMany(Shop::class);
     }
