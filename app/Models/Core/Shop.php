@@ -20,7 +20,7 @@ class Shop extends Model implements HasMedia
     const STATUS_PENDING = 'pending';
     const STATUS_ACTIVE = 'active';
     const STATUS_SUSPENDED = 'suspended';
-    
+
     protected $fillable = [
         "name",
         "reference",
@@ -114,5 +114,19 @@ class Shop extends Model implements HasMedia
         return $count > 0 ? (string) "{$slug}-{$count}" :$slug;
     }
 
+    public function getDescriptionAttribute(){
+        return strip_tags($this->shop_description);
+    }
+
+    public function getFulladdressAttribute()
+    {
+        $addressParts = array_filter([
+            $this->address?->country?->name,
+            $this->address?->state?->name,
+            $this->address?->city?->name,
+        ]);
+
+        return implode(', ', $addressParts);    
+    }
     
 }

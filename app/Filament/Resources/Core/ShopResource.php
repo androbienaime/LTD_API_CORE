@@ -16,14 +16,30 @@ use App\Models\Location\Country;
 use Filament\Resources\Resource;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Repeater;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ViewAction;
+use Filament\Tables\Columns\TextColumn;
+use Illuminate\Database\Eloquent\Model;
 use Filament\Forms\Components\TextInput;
+use Filament\Support\Enums\IconPosition;
+use Filament\Forms\Components\RichEditor;
+use Filament\Tables\Columns\ToggleColumn;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms\Components\ColorPicker;
+use Filament\Tables\Actions\BulkActionGroup;
+use Filament\Tables\Actions\DeleteBulkAction;
 use App\Filament\Resources\Core\ShopResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use App\Filament\Resources\Core\ShopResource\Pages\EditShop;
+use App\Filament\Resources\Core\ShopResource\Pages\ViewShop;
+use App\Filament\Resources\Core\ShopResource\Pages\ListShops;
+use App\Filament\Resources\Core\ShopResource\Pages\CreateShop;
 use App\Filament\Resources\Core\ShopResource\RelationManagers;
 
 class ShopResource extends Resource
@@ -81,7 +97,7 @@ class ShopResource extends Resource
                         Forms\Components\TextInput::make('name')
                             ->required()
                             ->maxLength(255)
-                            ->live()
+                            ->live(onBlur: true)
                             ->afterStateUpdated(function (Get $get, Set $set) {
                                 $set('slug', Shop::createUniqueSlug($get('name')));
                             }),
@@ -124,7 +140,7 @@ class ShopResource extends Resource
 
                         
 
-                        Section::make()
+                    Section::make()
                     ->schema([
                         Fieldset::make("Theme")
                             ->schema([
@@ -173,17 +189,76 @@ class ShopResource extends Resource
     {
         return $table
             ->columns([
+                SpatieMediaLibraryImageColumn::make('shop_profile')
+                    ->label(__("Profile"))
+                    ->collection("shop_profile")
+                    ->circular()
+                    ->conversion('thumb')
+                    ->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('name')
-                    ->description(fn(Shop $record) => $record->shop_description)
+                    ->description(fn(Shop $record): string => $record?->address?->email ?? "")
                     ->searchable(),
+                    TextColumn::make('description')
+                    ->limit(35)
+                    ->wrap()
+                    ->tooltip(function (TextColumn $column): ?string {
+                        $state = $column->getState();
+                 
+                        if (strlen($state) <= $column->getCharacterLimit()) {
+                            return null;
+                        }
+                 
+                        // Only render the tooltip if the column content exceeds the length limit.
+                        return $state;
+                    }),
+                    Tables\Columns\TextColumn::make('slug')
+                    ->label(__("Preview"))
+                    ->formatStateUsing(static function($state){
+                        return __("Preview");
+                    })
+                    ->url(fn($record) => $record->slug)
+                    ->openUrlInNewTab()
+                    ->icon("heroicon-m-arrow-top-right-on-square")
+                    ->iconPosition(IconPosition::After) 
+                    ->color("primary")
+                    ->tooltip(fn(Model $record) => $record->slug)
+                    ->searchable(),
+                    TextColumn::make('types')
+                    ->toggleable(isToggledHiddenByDefault: false)
+                    ->badge()
+                    ->searchable(),
+                    TextColumn::make('categories.name')
+                    ->limitList(3)
+                    ->expandableLimitedList()
+                    ->badge()
+                    ->separator(",")
+                    ->toggleable(isToggledHiddenByDefault: false),
+                TextColumn::make('fulladdress')
+                    ->toggleable(isToggledHiddenByDefault: false)
+                    ->wrap(),
                 Tables\Columns\TextColumn::make('reference')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
                 Tables\Columns\TextColumn::make('theme_name')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
                 Tables\Columns\TextColumn::make('theme_color')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
-                Tables\Columns\IconColumn::make('status')
-                    ->boolean(),
+                TextColumn::make('address.country.name')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->badge()
+                    ->searchable(),
+                TextColumn::make('address.state.name')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->badge()
+                    ->searchable(),
+                TextColumn::make('address.city.name')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->badge()
+                    ->searchable(),
+                Tables\Columns\ToggleColumn::make('status')
+                    ->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -194,7 +269,27 @@ class ShopResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('category')
+                ->relationship("categories", "name")
+                ->multiple()
+                ->preload()
+                ->label(__("Category"))
+                ->searchable()
+                ->options(Category::all()
+                    ->pluck('name', 'id')
+                    ->toArray()
+                ),
+                Tables\Filters\SelectFilter::make('types')
+                ->options([
+                    "Store" => "Store",
+                    "Dry" => "Dry",
+                    "Market" => "Market",
+                    "Restaurant" => "Restaurant",
+                    "Bar" => "Bar",
+                    "Cafe" => "Cafe",
+                    "Other" => "Other",
+                ]),
+                Tables\Filters\TernaryFilter::make('status'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -204,7 +299,7 @@ class ShopResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])->defaultSort("updated_at", "desc");
     }
 
     public static function getRelations(): array
