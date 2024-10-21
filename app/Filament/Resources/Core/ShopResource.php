@@ -9,8 +9,10 @@ use Filament\Forms\Set;
 use Filament\Forms\Form;
 use App\Models\Core\Shop;
 use Filament\Tables\Table;
+use App\Models\Core\Category;
 use Filament\Resources\Resource;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Section;
 use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\Core\ShopResource\Pages;
@@ -93,8 +95,16 @@ class ShopResource extends Resource
                             ])
                             ->searchable()
                             ->preload(),
-                        Forms\Components\TextInput::make('reference')
-                            ->maxLength(255),
+                        Select::make('categories')
+                                ->relationship('categories')
+                                ->multiple()
+                                ->searchable()
+                                ->options(Category::all()
+                                    ->pluck('name', 'id')
+                                    ->toArray()
+                                )
+                                ->label(__("Categories")),
+
                         Forms\Components\RichEditor::make('shop_description')
                             ->maxLength(255)
                             ->toolbarButtons([
