@@ -1,0 +1,266 @@
+<?php
+
+namespace App\Filament\Resources\Core;
+
+use Filament\Forms;
+use Filament\Tables;
+use Filament\Forms\Form;
+use Filament\Tables\Table;
+use App\Models\Core\Account;
+use App\Models\Core\Address;
+use App\Models\Location\City;
+use App\Models\Location\State;
+use App\Models\Location\Country;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Resources\Resource;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\DatePicker;
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Tables\Actions\BulkActionGroup;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Tables\Actions\DeleteBulkAction;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Resources\Core\AccountResource\Pages;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use App\Filament\Resources\Core\AccountResource\RelationManagers;
+use App\Filament\Resources\Core\AccountResource\Pages\EditAccount;
+use App\Filament\Resources\Core\AccountResource\Pages\ViewAccount;
+use App\Filament\Resources\Core\AccountResource\Pages\ListAccounts;
+use App\Filament\Resources\Core\AccountResource\Pages\CreateAccount;
+
+class AccountResource extends Resource
+{
+    protected static ?string $model = Account::class;
+
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Section::make()
+                    ->schema([
+                        SpatieMediaLibraryFileUpload::make('account_cover')
+                                    ->imageEditor()
+                                    ->image()
+                                    ->collection('account_cover')
+                                    ->responsiveImages()
+                                    ->conversion('thumb')
+                                    ->optimize('webp')
+                                    ->columnSpan('full')
+                                    ->downloadable()
+                                    // ->imagePreviewHeight(150)
+                                    ->panelLayout("compact")
+                                    ,
+                        SpatieMediaLibraryFileUpload::make('account_profile')
+                                ->avatar()
+                                ->collection('account_profile')
+                                ->label("")
+                                ->imageEditor()
+                                ->circleCropper()
+                                ->responsiveImages()
+                                ->conversion('thumb')
+                                ->optimize('webp')
+                                ->columnSpan('full')
+                                ->downloadable()
+                                ->panelAspectRatio('8:8')
+                                // ->imagePreviewHeight(150)
+                                ->panelLayout("circle")
+                                ->alignCenter()
+                                ,
+                    ])->extraAttributes(['class' => 'custom-section']),
+
+                Section::make() 
+                    ->schema([
+                        Fieldset::make('Personal Information')
+                            ->schema([
+                                Forms\Components\TextInput::make('firstname')
+                                    ->required()
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('lastname')
+                                    ->maxLength(255)
+                                    ->default(null),
+                                Forms\Components\TextInput::make('username')
+                                    ->required()
+                                    ->maxLength(255),
+                                Forms\Components\DatePicker::make('date_of_birth'),
+                                Forms\Components\TextInput::make('gender')
+                                    ->maxLength(255)
+                                    ->default(null),
+                            ])->columns(2),
+                    ]),
+                Section::make()
+                    ->schema([
+                        Fieldset::make('Connection Information')
+                            ->schema([
+                                Forms\Components\TextInput::make('email')
+                                    ->email()
+                                    ->required()
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('phone')
+                                    ->tel()
+                                    ->maxLength(255)
+                                    ->default(null),
+                                Forms\Components\Select::make('loginBy')
+                                    ->options([
+                                        "email" => __("Email"),
+                                        "phone" => __("Phone")
+                                    ])->columnSpanFull()
+                                    ->default("email"),
+                                Forms\Components\TextInput::make('password')
+                                    ->password()
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->revealable(),
+                                Forms\Components\TextInput::make('password')
+                                    ->password()
+                                    ->label('Confirm Password')
+                                    ->requiredWith('password')
+                                    ->revealable(),
+                            ])->columnSpan(1),
+
+                            Repeater::make('address')
+                                ->relationship('addresses')
+                                ->schema([
+                                    Grid::make("address_id")
+                                    ->relationship("address", "id")
+                                    ->schema([
+                                        Select::make("country_id")
+                                        ->label("Country")
+                                        ->options(fn() => Country::all()->pluck("name", "id"))
+                                        ->preload()
+                                        ->searchable()
+                                        ->live()
+                                        ->afterStateUpdated(fn(callable $set) => $set("state_id", null)),
+                                        Select::make("state_id")
+                                            ->label("State")
+                                            ->options(fn(callable $get) => State::where("country_id", $get("country_id"))->pluck("name", "id")->toArray())
+                                            ->live()
+                                            ->searchable()
+                                            ->afterStateUpdated(fn(callable $set) => $set("city_id", null)),
+                                        Select::make("city_id")
+                                            ->options(fn(callable $get) => City::where("state_id", $get("state_id"))->pluck("name", "id")->toArray())
+                                            ->live()
+                                            ->searchable(),
+                                        TextInput::make("address1")
+                                            ->label("Address 1"),
+                                        TextInput::make("phone")
+                                            ->label("phone"),
+                                        TextInput::make("email")
+                                            ->label("Email"),
+                                    ])->columns(2)
+                                ])->columnSpan(1)
+                                ->mutateRelationshipDataBeforeCreateUsing(function(array $data){
+                                    return self::processFillTable($data, Address::class, "address_id");
+                                }),
+                        ])->columns(2),
+
+                
+                Forms\Components\Toggle::make('is_active')
+                    ->required(),
+                Forms\Components\Toggle::make('is_notification_active')
+                    ->required(),
+                
+            ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('firstname')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('lastname')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('username')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('date_of_birth')
+                    ->date()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('gender')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('email')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('phone')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('otp')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('otp_activated_at')
+                    ->dateTime()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('otp_expired_at')
+                    ->dateTime()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('last_login')
+                    ->dateTime()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('ip_address')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('host')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('loginBy')
+                    ->searchable(),
+                Tables\Columns\IconColumn::make('is_active')
+                    ->boolean(),
+                Tables\Columns\IconColumn::make('is_verified')
+                    ->boolean(),
+                Tables\Columns\IconColumn::make('is_login')
+                    ->boolean(),
+                Tables\Columns\IconColumn::make('is_notification_active')
+                    ->boolean(),
+                Tables\Columns\TextColumn::make('lang')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('deleted_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                //
+            ])
+            ->actions([
+                Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListAccounts::route('/'),
+            'create' => Pages\CreateAccount::route('/create'),
+            'view' => Pages\ViewAccount::route('/{record}'),
+            'edit' => Pages\EditAccount::route('/{record}/edit'),
+        ];
+    }
+}

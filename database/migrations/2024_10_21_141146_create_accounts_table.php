@@ -33,7 +33,7 @@ return new class extends Migration
             $table->ipAddress('ip_address')->nullable();
             $table->string("host")->nullable();
             $table->string("remember_token")->nullable();
-            $table->string("loginBy")->nullable();
+            $table->string("loginBy")->default("email");
 
             // account status   
             $table->boolean('is_active')->default(true);
