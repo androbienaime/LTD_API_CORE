@@ -3,7 +3,6 @@
 namespace App\Models\Core;
 
 use App\Models\Core\Shop;
-use App\Models\Core\MerchantShop;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
