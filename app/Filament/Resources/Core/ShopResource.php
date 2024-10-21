@@ -10,10 +10,16 @@ use Filament\Forms\Form;
 use App\Models\Core\Shop;
 use Filament\Tables\Table;
 use App\Models\Core\Category;
+use App\Models\Location\City;
+use App\Models\Location\State;
+use App\Models\Location\Country;
 use Filament\Resources\Resource;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\Core\ShopResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -116,9 +122,46 @@ class ShopResource extends Resource
                                 'undo',])
                             ->ColumnSpan("full"),
 
-                        Forms\Components\TextInput::make('theme_name')
-                            ->maxLength(255),
-                        Forms\Components\ColorPicker::make('theme_color'),
+                        
+
+                        Section::make()
+                    ->schema([
+                        Fieldset::make("Theme")
+                            ->schema([
+                                Forms\Components\TextInput::make('theme_name')
+                                    ->maxLength(255),
+                                Forms\Components\ColorPicker::make('theme_color'),
+                            ])->columns(1)
+                            ->columnSpan(1),
+                        Fieldset::make("address")
+                            ->relationship("address", "id")
+                            ->schema([
+                                Select::make("country_id")
+                                ->label("Country")
+                                ->options(fn() => Country::all()->pluck("name", "id"))
+                                ->preload()
+                                ->searchable()
+                                ->live()
+                                ->afterStateUpdated(fn(callable $set) => $set("state_id", null)),
+                                Select::make("state_id")
+                                    ->label("State")
+                                    ->options(fn(callable $get) => State::where("country_id", $get("country_id"))->pluck("name", "id")->toArray())
+                                    ->live()
+                                    ->searchable()
+                                    ->afterStateUpdated(fn(callable $set) => $set("city_id", null)),
+                                Select::make("city_id")
+                                    ->options(fn(callable $get) => City::where("state_id", $get("state_id"))->pluck("name", "id")->toArray())
+                                    ->live()
+                                    ->searchable(),
+                                TextInput::make("address1")
+                                    ->label("Address 1"),
+                                TextInput::make("phone")
+                                    ->label("phone"),
+                                TextInput::make("email")
+                                    ->label("Email"),
+                            ])->columns(2)
+                            ->columnSpan(1)
+                    ])->columns(2),
                         Forms\Components\Toggle::make('status')
                             ->required(),
 
@@ -131,6 +174,7 @@ class ShopResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
+                    ->description(fn(Shop $record) => $record->shop_description)
                     ->searchable(),
                 Tables\Columns\TextColumn::make('reference')
                     ->searchable(),
