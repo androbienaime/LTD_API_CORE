@@ -68,6 +68,11 @@ class Account extends Authenticatable implements HasMedia
         return $this->getFirstMediaUrl('avatar');
     }
 
+    public function getFullNameAttribute()
+    {
+        return $this->firstname . ' ' . $this->lastname;
+    }
+
     public function addresses()
     {
         return $this->hasMany(AccountAddress::class);
