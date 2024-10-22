@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Core;
 
+use App\Core\Trait\FillTableToManyTrait;
 use Filament\Forms;
 use Filament\Tables;
 use Filament\Forms\Form;
@@ -40,6 +41,8 @@ use App\Filament\Resources\Core\AccountResource\Pages\CreateAccount;
 
 class AccountResource extends Resource
 {
+    use FillTableToManyTrait;
+
     protected static ?string $model = Account::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
@@ -86,17 +89,31 @@ class AccountResource extends Resource
                             ->schema([
                                 Forms\Components\TextInput::make('firstname')
                                     ->required()
-                                    ->maxLength(255),
+                                    ->maxLength(255)
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(fn(callable $set, callable $get) => 
+                                        $set("username", Account::generateUniqueUsername($get("firstname")." ".$get("lastname")))
+                                    ),
                                 Forms\Components\TextInput::make('lastname')
                                     ->maxLength(255)
-                                    ->default(null),
+                                    ->default(null)
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(fn(callable $set, callable $get) => 
+                                        $set("username", Account::generateUniqueUsername($get("firstname")." ".$get("lastname")))
+                                    ),
                                 Forms\Components\TextInput::make('username')
                                     ->required()
                                     ->maxLength(255),
-                                Forms\Components\DatePicker::make('date_of_birth'),
-                                Forms\Components\TextInput::make('gender')
-                                    ->maxLength(255)
-                                    ->default(null),
+                                Forms\Components\DatePicker::make('date_of_birth')
+                                    ->label(__("Date of Birth"))
+                                    ->minDate(now()->subYears(100))
+                                    ->maxDate(now()->subYears(10)),
+                                Forms\Components\Select::make('gender')
+                                    ->options([
+                                        "male" => __("Male"),
+                                        "female" => __("Female")
+                                    ])
+                                    ->default("male"),
                             ])->columns(2),
                     ]),
                 Section::make()
@@ -122,7 +139,7 @@ class AccountResource extends Resource
                                     ->required()
                                     ->maxLength(255)
                                     ->revealable(),
-                                Forms\Components\TextInput::make('password')
+                                Forms\Components\TextInput::make('password_confirmation')
                                     ->password()
                                     ->label('Confirm Password')
                                     ->requiredWith('password')

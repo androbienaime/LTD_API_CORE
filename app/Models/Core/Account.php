@@ -10,6 +10,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Illuminate\Support\Str;
 
 class Account extends Authenticatable implements HasMedia
 {
@@ -76,4 +77,33 @@ class Account extends Authenticatable implements HasMedia
     {
         return $this->hasMany(Order::class);
     }
+
+    
+
+    public static function generateUniqueUsername($name) {
+        // Génère un username sans tirets
+        $username = Str::slug($name, ''); // Remplacer les tirets par une chaîne vide
+    
+        // Recherche tous les usernames qui commencent par le slug généré
+        $existingUsernames = Account::where('username', 'LIKE', "{$username}%")
+                                ->pluck('username');
+    
+        // Si le username n'existe pas déjà, on le retourne directement
+        if (!$existingUsernames->contains($username)) {
+            return $username;
+        }
+    
+        // Filtre les usernames qui ont un suffixe numérique et extrait les numéros
+        $maxSuffix = $existingUsernames->filter(function ($value) use ($username) {
+            return preg_match("/^{$username}(\d+)$/", $value);
+        })->map(function ($value) use ($username) {
+            return intval(str_replace($username, '', $value));
+        })->max();
+    
+        // Incrémente le plus grand suffixe trouvé ou commence à 1
+        $newUsername = $username . ($maxSuffix + 1);
+    
+        return $newUsername;
+    }
+
 }
