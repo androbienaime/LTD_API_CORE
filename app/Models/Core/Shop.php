@@ -2,6 +2,9 @@
 
 namespace App\Models\Core;
 
+use Filament\Models\Contracts\HasName;
+use Illuminate\Database\Eloquent\Factories\BelongsToManyRelationship;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 use App\Models\Core\Product;
 use App\Models\Core\Customer;
@@ -12,7 +15,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Shop extends Model implements HasMedia
+class Shop extends Model implements HasMedia, HasName
 {
     use HasFactory, InteractsWithMedia;
 
@@ -41,6 +44,10 @@ class Shop extends Model implements HasMedia
 
     public function merchantShops(): HasMany{
         return $this->hasMany(MerchantShop::class);
+    }
+
+    public function account() : BelongsToMany{
+        return $this->belongsToMany(Account::class);
     }
 
     public function subscribers(){
@@ -126,7 +133,15 @@ class Shop extends Model implements HasMedia
             $this->address?->city?->name,
         ]);
 
-        return implode(', ', $addressParts);    
+        return implode(', ', $addressParts);
     }
-    
+
+    public function getFilamentName(): string
+    {
+        return $this->name;
+    }
+
+    public function accounts() : BelongsToMany{
+        return $this->belongsToMany(Account::class);
+    }
 }

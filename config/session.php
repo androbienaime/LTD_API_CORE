@@ -211,4 +211,6 @@ return [
 
     'partitioned' => false,
 
+    'prefix' => env('SESSION_PREFIX', 'web_session'),
+
 ];

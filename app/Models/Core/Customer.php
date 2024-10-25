@@ -2,15 +2,12 @@
 
 namespace App\Models\Core;
 
-use App\Core\Trait\CustomerTrait;
-use App\Models\Core\Order;
-use App\Models\Core\Product;
-use App\Models\Core\AddressCustomer;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Notifications\Notifiable;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Customer extends Model
@@ -24,16 +21,48 @@ class Customer extends Model
         "gender",
         "identityNumber_id",
         "email",
-        "date_of_birth"
+        "date_of_birth",
+        "shop_id",
+        "account_id"
     ];
 
+    protected static $tableName = "customers";
+
+    protected static function booted(): void
+    {
+        // Dans le modèle Customer
+        static::addGlobalScope('account', function (Builder $query) {
+            if (auth("account")->check()) {
+                $account = auth("account")->user();
+
+                $query->whereExists(function ($subQuery) use ($account) {
+                    $subQuery->from('account_shop')
+                        ->whereColumn('account_shop.shop_id', self::$tableName.'.shop_id')
+                        ->where('account_shop.account_id', $account->id)
+                        ->where('account_shop.status', "active");
+                });
+            }
+        });
+
+
+    }
+
+    public function account() : BelongsTo
+    {
+        return $this->belongsTo(Account::class);
+    }
+
+    public function accounts() : BelongsTo
+    {
+        return $this->belongsTo(Shop::class);
+    }
     public function getFullnameAttribute(){
         return "{$this->firstname} {$this->lastname}";
     }
 
     public function getFullCustomerAddressAttribute(){
-        $address = $this->addressCustomers?->first()->address;
-        return $address->getFullAddressAttribute();
+        $address = $this->addressCustomers?->first()?->address;
+        return $address?->getFullAddressAttribute();
     }
     public function order(){
         return $this->belongsToMany(Order::class);
@@ -56,6 +85,6 @@ class Customer extends Model
     }
 
     public function shareProduct(){
-        return $this->belongsToMany(Product::class); 
+        return $this->belongsToMany(Product::class);
     }
 }

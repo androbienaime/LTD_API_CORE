@@ -71,4 +71,9 @@ return [
 
     'livewire_loading_delay' => 'default',
 
+//    'auth' => [
+//        'guard' => 'account', // Utilise le guard 'admin' pour l'authentification dans Filament
+//        'user_model' => App\Models\Core\Account::class, // Le modèle Admin est utilisé pour l'authentification
+//    ],
+
 ];

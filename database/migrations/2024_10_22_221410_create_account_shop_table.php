@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('account_address', function (Blueprint $table) {
+        Schema::create('account_shop', function (Blueprint $table) {
             $table->id();
-            $table->foreignId("account_id")->constrained();
-            $table->foreignId("address_id")->constrained();
+            $table->foreignId("account_id")->constrained("accounts")->cascadeOnDelete();
+            $table->foreignId('shop_id')->constrained('shops')->cascadeOnDelete();
+            $table->string("status")->default("active");
+            $table->softDeletes();
             $table->timestamps();
         });
     }
@@ -24,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('account_address');
+        Schema::dropIfExists('account_shop');
     }
 };
