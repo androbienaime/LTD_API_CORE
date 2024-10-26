@@ -19,6 +19,12 @@ class UserResource extends Resource
 
     // protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Uniquement accessible aux Users
+        return auth('web')->check();
+    }
+
     public static function getNavigationGroup() : string {
         return __("Settings");
     }

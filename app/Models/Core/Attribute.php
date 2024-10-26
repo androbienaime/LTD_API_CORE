@@ -2,6 +2,7 @@
 
 namespace App\Models\Core;
 
+use App\Core\Trait\Models\AccountGlobalScopeTrait;
 use App\Models\Core\Value;
 use App\Models\Core\AttributeValue;
 use Illuminate\Database\Eloquent\Model;
@@ -11,10 +12,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Attribute extends Model
 {
-    use HasFactory;
+    use HasFactory, AccountGlobalScopeTrait;
+
+    protected static string $tableName = 'attributes';
+
     protected $fillable = [
         "name",
-        "type"
+        "type",
+        "shop_id",
+        "account_id"
     ];
 
     public function attributeDeclinations() : HasMany{

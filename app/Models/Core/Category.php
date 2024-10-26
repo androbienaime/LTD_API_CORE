@@ -2,6 +2,7 @@
 
 namespace App\Models\Core;
 
+use App\Core\Trait\Models\AccountGlobalScopeTrait;
 use App\Models\Core\CategoryProduct;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,13 +11,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Category extends Model
 {
-    use HasFactory;
+    use HasFactory, AccountGlobalScopeTrait;
+
+    protected static string $tableName = 'categories';
 
     protected $fillable = [
         "name",
         "category_parent",
         "slug",
-        "parent_id"
+        "parent_id",
+        "shop_id",
+        "accoun_id"
     ];
 
     public function parent()
@@ -27,5 +32,5 @@ class Category extends Model
     public function Product() : BelongsToMany{
         return $this->belongsToMany(CategoryProduct::class);
     }
-    
+
 }

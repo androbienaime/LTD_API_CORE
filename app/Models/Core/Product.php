@@ -2,6 +2,7 @@
 
 namespace App\Models\Core;
 
+use App\Core\Trait\Models\AccountGlobalScopeTrait;
 use Spatie\Tags\HasTags;
 use App\Models\Core\Shop;
 use App\Models\Core\Brand;
@@ -36,9 +37,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  */
 class Product extends Model implements HasMedia
 {
-    use HasFactory, InteractsWithMedia, HasTags;
+    use HasFactory, InteractsWithMedia, HasTags, AccountGlobalScopeTrait;
 
     protected $guarded;
+
+    protected static string $tableName = 'products';
 
     public function registerMediaConversions(Media $media = null) : void{
         $this->addMediaConversion("thumb")
@@ -81,7 +84,7 @@ class Product extends Model implements HasMedia
     public function shop(){
         return $this->belongsTo(Shop::class);
     }
-    
+
     public function productLikes(){
         return $this->belongsToMany(Customer::class, 'productLikes');
     }
@@ -108,5 +111,5 @@ class Product extends Model implements HasMedia
         return $count > 0 ? (string) "{$slug}-{$count}" :$slug;
     }
 
-   
+
 }

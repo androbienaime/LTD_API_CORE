@@ -2,6 +2,7 @@
 
 namespace App\Models\Core;
 
+use App\Core\Trait\Models\AccountGlobalScopeTrait;
 use App\Models\Core\Customer;
 use App\Models\Core\OrderStatus;
 use App\Models\Core\OrderAdvance;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Order extends Model
 {
-    use HasFactory;
+    use HasFactory, AccountGlobalScopeTrait;
 
     protected $guarded;
 

@@ -2,6 +2,7 @@
 
 namespace App\Models\Core;
 
+use App\Core\Trait\Models\AccountGlobalScopeTrait;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +13,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Customer extends Model
 {
-    use HasFactory, Notifiable, InteractsWithMedia;
+    use HasFactory, Notifiable, InteractsWithMedia, AccountGlobalScopeTrait;
 
     protected $fillable = [
         "firstname",
@@ -26,26 +27,7 @@ class Customer extends Model
         "account_id"
     ];
 
-    protected static $tableName = "customers";
-
-    protected static function booted(): void
-    {
-        // Dans le modèle Customer
-        static::addGlobalScope('account', function (Builder $query) {
-            if (auth("account")->check()) {
-                $account = auth("account")->user();
-
-                $query->whereExists(function ($subQuery) use ($account) {
-                    $subQuery->from('account_shop')
-                        ->whereColumn('account_shop.shop_id', self::$tableName.'.shop_id')
-                        ->where('account_shop.account_id', $account->id)
-                        ->where('account_shop.status', "active");
-                });
-            }
-        });
-
-
-    }
+    protected static string $tableName = "customers";
 
     public function account() : BelongsTo
     {

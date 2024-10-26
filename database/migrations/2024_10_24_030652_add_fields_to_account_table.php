@@ -24,7 +24,7 @@ return new class extends Migration
     {
         Schema::table('accounts', function (Blueprint $table) {
             $table->dropForeign('accounts_shop_id_foreign');
-            $table->dropColumn("account");
+            $table->dropColumn("type");
         });
     }
 };
