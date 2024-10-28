@@ -18,6 +18,7 @@ class Order extends Model
 {
     use HasFactory, AccountGlobalScopeTrait;
 
+    protected static string $tableName = "orders";
     protected $guarded;
 
     public function status() : BelongsTo{
