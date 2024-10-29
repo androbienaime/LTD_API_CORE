@@ -86,6 +86,9 @@ class ShopPanelProvider extends PanelProvider
                  ->icon('heroicon-o-cog-8-tooth'),
             ])
             ->sidebarWidth('16rem')
-            ->brandLogo(fn () => view('filament.admin.logo'));
+            ->brandLogo(fn () => view('filament.admin.logo'))
+            ->plugins([
+                \BezhanSalleh\FilamentShield\FilamentShieldPlugin::make(),
+            ]);
     }
 }

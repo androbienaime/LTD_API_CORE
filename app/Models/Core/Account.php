@@ -2,27 +2,29 @@
 
 namespace App\Models\Core;
 
-use Filament\Models\Contracts\FilamentUser;
-use Filament\Models\Contracts\HasAvatar;
-use Filament\Models\Contracts\HasName;
-use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\MediaLibrary\HasMedia;
+use Illuminate\Support\Collection;
+use Filament\Models\Contracts\HasName;
+use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Model;
+use Filament\Models\Contracts\HasAvatar;
 use Illuminate\Notifications\Notifiable;
+use Filament\Models\Contracts\HasTenants;
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Models\Contracts\FilamentUser;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use BezhanSalleh\FilamentShield\Traits\HasPanelShield;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Spatie\MediaLibrary\HasMedia;
-use Spatie\MediaLibrary\InteractsWithMedia;
-use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Account extends Authenticatable implements HasMedia, FilamentUser, HasName, HasAvatar
 {
-    use HasApiTokens, HasFactory, Notifiable, InteractsWithMedia;
+    use HasApiTokens, HasFactory, Notifiable, InteractsWithMedia, HasRoles, HasPanelShield;
 
     protected $guard = "accounts";
 
