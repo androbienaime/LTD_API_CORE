@@ -2,8 +2,9 @@
 
 namespace App\Policies\Core;
 
-use App\Models\Core\Account;
+use App\Models\User;
 
+use App\Models\Core\Account;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class AccountPolicy
@@ -16,7 +17,7 @@ class AccountPolicy
      * @param  \App\Models\Core\Account  $account
      * @return bool
      */
-    public function viewAny(Account $account): bool
+    public function viewAny(Account|User $account): bool
     {
         return $account->can('view_any_core::account');
     }
@@ -27,7 +28,7 @@ class AccountPolicy
      * @param  \App\Models\Core\Account  $account
      * @return bool
      */
-    public function view(Account $account): bool
+    public function view(Account|User $account): bool
     {
         return $account->can('view_core::account');
     }
@@ -38,7 +39,7 @@ class AccountPolicy
      * @param  \App\Models\Core\Account  $account
      * @return bool
      */
-    public function create(Account $account): bool
+    public function create(Account|User $account): bool
     {
         return $account->can('create_core::account');
     }
@@ -49,7 +50,7 @@ class AccountPolicy
      * @param  \App\Models\Core\Account  $account
      * @return bool
      */
-    public function update(Account $account): bool
+    public function update(Account|User $account): bool
     {
         return $account->can('update_core::account');
     }
@@ -60,7 +61,7 @@ class AccountPolicy
      * @param  \App\Models\Core\Account  $account
      * @return bool
      */
-    public function delete(Account $account): bool
+    public function delete(Account|User $account): bool
     {
         return $account->can('delete_core::account');
     }
@@ -71,7 +72,7 @@ class AccountPolicy
      * @param  \App\Models\Core\Account  $account
      * @return bool
      */
-    public function deleteAny(Account $account): bool
+    public function deleteAny(Account|User $account): bool
     {
         return $account->can('delete_any_core::account');
     }
@@ -82,7 +83,7 @@ class AccountPolicy
      * @param  \App\Models\Core\Account  $account
      * @return bool
      */
-    public function forceDelete(Account $account): bool
+    public function forceDelete(Account|User $account): bool
     {
         return $account->can('force_delete_core::account');
     }
@@ -93,7 +94,7 @@ class AccountPolicy
      * @param  \App\Models\Core\Account  $account
      * @return bool
      */
-    public function forceDeleteAny(Account $account): bool
+    public function forceDeleteAny(Account|User $account): bool
     {
         return $account->can('force_delete_any_core::account');
     }
@@ -104,7 +105,7 @@ class AccountPolicy
      * @param  \App\Models\Core\Account  $account
      * @return bool
      */
-    public function restore(Account $account): bool
+    public function restore(Account|User $account): bool
     {
         return $account->can('restore_core::account');
     }
@@ -115,7 +116,7 @@ class AccountPolicy
      * @param  \App\Models\Core\Account  $account
      * @return bool
      */
-    public function restoreAny(Account $account): bool
+    public function restoreAny(Account|User $account): bool
     {
         return $account->can('restore_any_core::account');
     }
@@ -126,7 +127,7 @@ class AccountPolicy
      * @param  \App\Models\Core\Account  $account
      * @return bool
      */
-    public function replicate(Account $account): bool
+    public function replicate(Account|User $account): bool
     {
         return $account->can('replicate_core::account');
     }
@@ -137,7 +138,7 @@ class AccountPolicy
      * @param  \App\Models\Core\Account  $account
      * @return bool
      */
-    public function reorder(Account $account): bool
+    public function reorder(Account|User $account): bool
     {
         return $account->can('reorder_core::account');
     }
