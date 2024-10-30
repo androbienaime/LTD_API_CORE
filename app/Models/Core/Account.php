@@ -143,6 +143,16 @@ class Account extends Authenticatable implements HasMedia, FilamentUser, HasName
     {
         return $this->belongsToMany(Shop::class);
     }
+
+    public function shopActive()
+    {
+        return $this->belongsToMany(Shop::class)
+            ->wherePivot('deleted_at', null)  // non softdelete
+            ->wherePivot('status', 'active') // status actif dans la table pivot
+            ->withPivot(['created_at', 'status'])
+            ->orderBy('pivot_created_at', 'desc')
+            ->take(1);  // prendre le dernier
+    }
 //    public function canAccessTenant(Model $tenant): bool
 //    {
 //        return $this->shop()->whereKey($tenant)->exists();

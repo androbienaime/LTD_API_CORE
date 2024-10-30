@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\Core\Customer;
+use App\Models\Core\Roles\Role;
+use App\Observers\RoleObserver;
 use App\Observers\CustomerObserver;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
 
     public static function boot() : void
     {
-        Customer::observe(CustomerObserver::class);
+        // Customer::observe(CustomerObserver::class);
+        Role::observe(RoleObserver::class);
     }
 }

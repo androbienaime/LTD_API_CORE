@@ -148,6 +148,12 @@ class AccountResource extends Resource
                                     ->label('Confirm Password')
                                     ->requiredWith('password')
                                     ->revealable(),
+                                    // Using Select Component
+                                Forms\Components\Select::make('roles')
+                                ->relationship('roles', 'name')
+                                ->multiple()
+                                ->preload()
+                                ->searchable()
                             ])->columnSpan(1),
 
                             Repeater::make('address')

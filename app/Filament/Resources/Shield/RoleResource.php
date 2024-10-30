@@ -88,6 +88,7 @@ class RoleResource extends Resource implements HasShieldPermissions
                     ->colors(['primary'])
                     ->searchable(),
                 Tables\Columns\TextColumn::make('guard_name')
+                     ->hidden(auth()->guard("account")->check())
                     ->badge()
                     ->label(__('filament-shield::filament-shield.column.guard_name')),
                 Tables\Columns\TextColumn::make('permissions_count')
@@ -95,6 +96,21 @@ class RoleResource extends Resource implements HasShieldPermissions
                     ->label(__('filament-shield::filament-shield.column.permissions'))
                     ->counts('permissions')
                     ->colors(['success']),
+                Tables\Columns\TextColumn::make('getTenant.name')
+                    ->badge()
+                    ->label("tenant")
+                    ->getStateUsing(function ($record) {
+                        if (auth()->guard('web')->check()) {
+                            if ($record->guard_name === 'web') {
+                                return $record->getTenant()->first()?->name;
+                            } elseif ($record->guard_name === 'account') {
+                                return $record->getTenant()->first()?->name;
+                            }
+                        } elseif (auth()->guard('account')->check() && $record->guard_name === 'account') {
+                            return $record->getTenant()->first()?->name;
+                        }
+                        return '-';
+                    }),
                 Tables\Columns\TextColumn::make('updated_at')
                     ->label(__('filament-shield::filament-shield.column.updated_at'))
                     ->dateTime(),
@@ -180,12 +196,12 @@ class RoleResource extends Resource implements HasShieldPermissions
         return Utils::getResourceSlug();
     }
 
-    public static function getNavigationBadge(): ?string
-    {
-        return Utils::isResourceNavigationBadgeEnabled()
-            ? strval(static::getEloquentQuery()->count())
-            : null;
-    }
+    // public static function getNavigationBadge(): ?string
+    // {
+    //     return Utils::isResourceNavigationBadgeEnabled()
+    //         ? strval(static::getEloquentQuery()->count())
+    //         : null;
+    // }
 
     public static function isScopedToTenant(): bool
     {

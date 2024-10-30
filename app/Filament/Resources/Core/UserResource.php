@@ -22,7 +22,8 @@ class UserResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         // Uniquement accessible aux Users
-        return auth('web')->check();
+        // return auth('web')->check();
+        return true;
     }
 
     public static function getNavigationGroup() : string {
@@ -49,6 +50,11 @@ class UserResource extends Resource
                     ->password()
                     ->required()
                     ->maxLength(255),
+                Forms\Components\Select::make('roles')
+                    ->relationship('roles', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable()
             ]);
     }
 
