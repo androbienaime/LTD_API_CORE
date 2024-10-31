@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Shield\RoleResource\Pages;
 
 use App\Filament\Resources\Shield\RoleResource;
+use App\Models\Core\Roles\Role;
 use BezhanSalleh\FilamentShield\Support\Utils;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Arr;
@@ -16,6 +17,10 @@ class CreateRole extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        if(isset($data["name"])){
+            $data["name"] = Role::createUniqueRole($data["name"]);
+        }
+
         $this->permissions = collect($data)
             ->filter(function ($permission, $key) {
                 return ! in_array($key, ['name', 'guard_name', 'select_all']);

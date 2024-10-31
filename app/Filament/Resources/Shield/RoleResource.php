@@ -45,7 +45,6 @@ class RoleResource extends Resource implements HasShieldPermissions
                             ->schema([
                                 Forms\Components\TextInput::make('name')
                                     ->label(__('filament-shield::filament-shield.field.name'))
-                                    ->unique(ignoreRecord: true)
                                     ->required()
                                     ->maxLength(255),
 
@@ -81,7 +80,7 @@ class RoleResource extends Resource implements HasShieldPermissions
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                Tables\Columns\TextColumn::make('rolename')
                     ->badge()
                     ->label(__('filament-shield::filament-shield.column.name'))
                     ->formatStateUsing(fn ($state): string => Str::headline($state))
@@ -215,8 +214,18 @@ class RoleResource extends Resource implements HasShieldPermissions
 
     public static function getResourceEntitiesSchema(): ?array
     {
+        
         return collect(FilamentShield::getResources())
             ->sortKeys()
+             ->filter(function ($entity) {
+                $excludedResources = [];
+                // Exemple: exclure certaines ressources par leur nom
+                if(auth()->guard("account")->check() && !is_null(config("ltsp.excludedResources"))){
+                    $excludedResources = config("ltsp.excludedResources")["account"];
+                }
+
+                return !in_array(class_basename($entity['fqcn']), $excludedResources);
+            })
             ->map(function ($entity) {
                 $sectionLabel = strval(
                     static::shield()->hasLocalizedPermissionLabels()
@@ -234,11 +243,21 @@ class RoleResource extends Resource implements HasShieldPermissions
                     ->collapsible();
             })
             ->toArray();
+
     }
 
     public static function getResourceTabBadgeCount(): ?int
     {
         return collect(FilamentShield::getResources())
+            ->filter(function ($entity) {
+                $excludedResources = [];
+                // Exemple: exclure certaines ressources par leur nom
+                if(auth()->guard("account")->check() && !is_null(config("ltsp.excludedResources"))){
+                    $excludedResources = config("ltsp.excludedResources")["account"];
+                }
+
+                return !in_array(class_basename($entity['fqcn']), $excludedResources);
+            })
             ->map(fn ($resource) => count(static::getResourcePermissionOptions($resource)))
             ->sum();
     }

@@ -11,6 +11,23 @@ class UserPolicy
     use HandlesAuthorization;
 
     /**
+     * This method runs before each permission check.
+     * It blocks all access for users under the 'account' guard,
+     * unless an exception is defined in a specific policy method.
+     */
+
+    public function before(Account|User $account, $ability): bool|null
+    {
+        // Si le guard actif est 'account', bloquer l'accès globalement
+        if (auth()->guard('account')->check()) {
+            return false;
+        }
+
+        // Retourne null pour continuer la vérification des permissions normales
+        return null;
+    }
+
+    /**
      * Determine whether the account can view any models.
      */
     public function viewAny(Account|User $account): bool

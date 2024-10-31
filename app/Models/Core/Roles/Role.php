@@ -59,4 +59,25 @@ class Role extends SpatieRole
             }
         }
     }
+
+    public static function createUniqueRole($name){
+        $count = Role::where("name", 'LIKE', "{$name}%")->count();
+
+        return $count > 0 ? (string) "{$name}{$count}" :$name;
+    }
+
+    public function getRoleNameAttribute() : string{
+        $roleName = $this->name;
+        // $newName = preg_replace("/[^a-zA-Z]/", "", $roleName);
+        // if(Role::where('name', $newName)
+        //     ->where('guard_name', $this->guard_name)
+        //     ->exists()){
+
+        //         dd("ok");
+
+        //         $roleName = $newName;
+        // }
+
+        return $roleName;
+    }
 }

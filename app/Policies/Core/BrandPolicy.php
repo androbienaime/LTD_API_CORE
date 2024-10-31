@@ -2,8 +2,9 @@
 
 namespace App\Policies\Core;
 
-use App\Models\Core\Account;
+use App\Models\User;
 use App\Models\Core\Brand;
+use App\Models\Core\Account;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class BrandPolicy
@@ -13,7 +14,7 @@ class BrandPolicy
     /**
      * Determine whether the account can view any models.
      */
-    public function viewAny(Account $account): bool
+    public function viewAny(Account|User $account): bool
     {
         return $account->can('view_any_core::brand');
     }
@@ -21,7 +22,7 @@ class BrandPolicy
     /**
      * Determine whether the account can view the model.
      */
-    public function view(Account $account, Brand $brand): bool
+    public function view(Account|User $account, Brand $brand): bool
     {
         return $account->can('view_core::brand');
     }
@@ -29,7 +30,7 @@ class BrandPolicy
     /**
      * Determine whether the account can create models.
      */
-    public function create(Account $account): bool
+    public function create(Account|User $account): bool
     {
         return $account->can('create_core::brand');
     }
@@ -37,7 +38,7 @@ class BrandPolicy
     /**
      * Determine whether the account can update the model.
      */
-    public function update(Account $account, Brand $brand): bool
+    public function update(Account|User $account, Brand $brand): bool
     {
         return $account->can('update_core::brand');
     }
@@ -45,7 +46,7 @@ class BrandPolicy
     /**
      * Determine whether the account can delete the model.
      */
-    public function delete(Account $account, Brand $brand): bool
+    public function delete(Account|User $account, Brand $brand): bool
     {
         return $account->can('delete_core::brand');
     }
@@ -53,7 +54,7 @@ class BrandPolicy
     /**
      * Determine whether the account can bulk delete.
      */
-    public function deleteAny(Account $account): bool
+    public function deleteAny(Account|User $account): bool
     {
         return $account->can('delete_any_core::brand');
     }
@@ -61,7 +62,7 @@ class BrandPolicy
     /**
      * Determine whether the account can permanently delete.
      */
-    public function forceDelete(Account $account, Brand $brand): bool
+    public function forceDelete(Account|User $account, Brand $brand): bool
     {
         return $account->can('force_delete_core::brand');
     }
@@ -69,7 +70,7 @@ class BrandPolicy
     /**
      * Determine whether the account can permanently bulk delete.
      */
-    public function forceDeleteAny(Account $account): bool
+    public function forceDeleteAny(Account|User $account): bool
     {
         return $account->can('force_delete_any_core::brand');
     }
@@ -77,7 +78,7 @@ class BrandPolicy
     /**
      * Determine whether the account can restore.
      */
-    public function restore(Account $account, Brand $brand): bool
+    public function restore(Account|User $account, Brand $brand): bool
     {
         return $account->can('restore_core::brand');
     }
@@ -85,7 +86,7 @@ class BrandPolicy
     /**
      * Determine whether the account can bulk restore.
      */
-    public function restoreAny(Account $account): bool
+    public function restoreAny(Account|User $account): bool
     {
         return $account->can('restore_any_core::brand');
     }
@@ -93,7 +94,7 @@ class BrandPolicy
     /**
      * Determine whether the account can replicate.
      */
-    public function replicate(Account $account, Brand $brand): bool
+    public function replicate(Account|User $account, Brand $brand): bool
     {
         return $account->can('replicate_core::brand');
     }
@@ -101,7 +102,7 @@ class BrandPolicy
     /**
      * Determine whether the account can reorder.
      */
-    public function reorder(Account $account): bool
+    public function reorder(Account|User $account): bool
     {
         return $account->can('reorder_core::brand');
     }

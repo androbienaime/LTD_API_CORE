@@ -2,12 +2,13 @@
 
 namespace App\Filament\Resources\Shield\RoleResource\Pages;
 
-use App\Filament\Resources\Shield\RoleResource;
-use BezhanSalleh\FilamentShield\Support\Utils;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Arr;
+use App\Models\Core\Roles\Role;
 use Illuminate\Support\Collection;
+use Filament\Resources\Pages\EditRecord;
+use BezhanSalleh\FilamentShield\Support\Utils;
+use App\Filament\Resources\Shield\RoleResource;
 
 class EditRole extends EditRecord
 {
@@ -24,6 +25,9 @@ class EditRole extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        if($this->record->name != $data["name"]){
+            $data["name"] = Role::createUniqueRole($data["name"]);
+        }
         $this->permissions = collect($data)
             ->filter(function ($permission, $key) {
                 return ! in_array($key, ['name', 'guard_name', 'select_all']);
