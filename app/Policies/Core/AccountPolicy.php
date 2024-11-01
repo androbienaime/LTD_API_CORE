@@ -11,6 +11,17 @@ class AccountPolicy
 {
     use HandlesAuthorization;
 
+    public function before(Account|User $account, $ability): bool|null
+    {
+        // Si le guard actif est 'account', bloquer l'accès globalement
+        if (auth()->guard('account')->check()) {
+            return false;
+        }
+
+        // Retourne null pour continuer la vérification des permissions normales
+        return null;
+    }
+    
     /**
      * Determine whether the account can view any models.
      *

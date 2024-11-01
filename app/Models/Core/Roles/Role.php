@@ -7,17 +7,38 @@ use App\Models\Core\Shop;
 use Spatie\Permission\Models\Role as SpatieRole;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Class Role
+ * 
+ * Extends Spatie's Role model to add tenant-specific functionality and custom role management.
+ * This class implements multi-tenancy for role management across different authentication guards.
+ *
+ * @property string $name Role name
+ * @property string $guard_name Guard name ('web' or 'account')
+ * @property int $tenant_id ID of the tenant (User or Shop)
+ * 
+ * @method static createUniqueRole(string $name) Creates a unique role name by appending a number if necessary
+ */
 class Role extends SpatieRole
 {
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<string>
+     */
     protected $fillable = [
         'name',
         'guard_name',
         'tenant_id'
     ];
 
+    /**
+     * Boot method with global scope for tenant separation
+     * Applies tenant-specific filtering for both web and account guards
+     */
     protected static function booted()
     {
-                 // 1. Séparation de la logique de scope pour la lecture
+        // 1. Séparation de la logique de scope pour la lecture
         static::addGlobalScope('tenant_scope', function($query) {
             // Vérifier si c'est une requête SELECT en examinant le type de requête
             if ($query->getQuery()->columns !== null) {
@@ -44,28 +65,40 @@ class Role extends SpatieRole
         });
     }
 
-    public function getTenant()
+    /**
+     * Get the tenant relationship based on the current guard and context
+     * 
+     * @return BelongsTo Returns the relationship to either User or Shop based on guard context
+     */
+    public function getTenant(): BelongsTo
     {
-        if(auth()->guard('web')->check()) {
-            if($this->guard_name == 'web') {
-                return $this->belongsTo(User::class, 'tenant_id');
-            } elseif($this->guard_name == 'account') {
-                return $this->belongsTo(Shop::class, 'tenant_id');
-            }
-        } elseif(auth()->guard('account')->check()) {
-            if($this->guard_name == 'account') {
-                // On veut le dernier shop actif
-                return $this->belongsTo(Shop::class, 'tenant_id');
-            }
+        if ($this->guard_name == 'web') {
+            return $this->belongsTo(User::class, 'tenant_id');
+        } else if ($this->guard_name == 'account') {
+            return $this->belongsTo(Shop::class, 'tenant_id');
         }
+        
+        // Fallback par défaut pour éviter le retour null
+        return $this->belongsTo(User::class, 'tenant_id');
     }
 
+    /**
+     * Creates a unique role name by appending a number if the name already exists
+     * 
+     * @param string $name Base name for the role
+     * @return string Unique role name
+     */
     public static function createUniqueRole($name){
         $count = Role::where("name", 'LIKE', "{$name}%")->count();
 
         return $count > 0 ? (string) "{$name}{$count}" :$name;
     }
 
+    /**
+     * Get the formatted role name
+     * 
+     * @return string Formatted role name
+     */
     public function getRoleNameAttribute() : string{
         $roleName = $this->name;
         // $newName = preg_replace("/[^a-zA-Z]/", "", $roleName);

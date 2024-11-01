@@ -2,6 +2,7 @@
     return [
         "excludedResources" => [
             "account" => [
+                'AccountResource',
                 'UserResource',
                 'AddressResource',
                 'CityResource',
@@ -15,8 +16,27 @@
                 'CouponResource',
                 'CarrierResource',
                 'CurrencyResource',
-            ]    // Ajoutez d'autres ressources à exclure
+            ],
+            "role-account" =>[
+                "manage-products"=>[
+                    "AccountResource",
+                    "RoleResource",
+                    "ShopResource",
+                ],
+                "cashier"=>[
+                    "AccountResource",
+                    "RoleResource",
+                    "ShopResource",
+                    "ProductResource",
+                    "BrandResource",
+                    "CategoryResource",
+                    "AttributeResource",
+                ]
+            ]
         ],
+
+        "manage-products"=>true,
+        "cashier"=>true,
     ];
 
 ?>

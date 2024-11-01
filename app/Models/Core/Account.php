@@ -36,6 +36,7 @@ class Account extends Authenticatable implements HasMedia, FilamentUser, HasName
         "password",
         "loginBy",
         "phone",
+        "gender",
         "otp",
         "otp_activated_at",
         "otp_expired_at",
@@ -79,6 +80,7 @@ class Account extends Authenticatable implements HasMedia, FilamentUser, HasName
         'agent',
         'host',
     ];
+
 
     public function getFilamentName(): string
     {

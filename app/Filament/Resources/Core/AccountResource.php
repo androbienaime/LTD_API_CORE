@@ -17,6 +17,7 @@ use Filament\Actions\ViewAction;
 use Filament\Resources\Resource;
 use Filament\Forms\Components\Grid;
 use Filament\Tables\Filters\Filter;
+use Illuminate\Support\Facades\Hash;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Section;
@@ -93,14 +94,14 @@ class AccountResource extends Resource
                                 Forms\Components\TextInput::make('firstname')
                                     ->required()
                                     ->maxLength(255)
-                                    ->live(onBlur: true)
+                                    ->lazy()
                                     ->afterStateUpdated(fn(callable $set, callable $get) => 
                                         $set("username", Account::generateUniqueUsername($get("firstname")." ".$get("lastname")))
                                     ),
                                 Forms\Components\TextInput::make('lastname')
                                     ->maxLength(255)
                                     ->default(null)
-                                    ->live(onBlur: true)
+                                    ->lazy()
                                     ->afterStateUpdated(fn(callable $set, callable $get) => 
                                         $set("username", Account::generateUniqueUsername($get("firstname")." ".$get("lastname")))
                                     ),
@@ -130,6 +131,7 @@ class AccountResource extends Resource
                                     ->unique(ignoreRecord: true),
                                 Forms\Components\TextInput::make('phone')
                                     ->tel()
+                                    ->unique(ignoreRecord: true)
                                     ->maxLength(255)
                                     ->default(null),
                                 Forms\Components\Select::make('loginBy')
@@ -141,16 +143,21 @@ class AccountResource extends Resource
                                 Forms\Components\TextInput::make('password')
                                     ->password()
                                     ->required()
+                                    ->dehydrated(fn ($state) => !empty($state)) // Ne conserve la valeur que si elle est non vide
+                                    ->dehydrateStateUsing(fn ($state) => !empty($state) ? Hash::make($state) : null) // Hache le mot de passe s'il est défini
+                                    ->required(fn ($livewire) => $livewire instanceof \Filament\Resources\Pages\CreateRecord) // Requis seulement en création                                
                                     ->maxLength(255)
                                     ->revealable(),
                                 Forms\Components\TextInput::make('password_confirmation')
                                     ->password()
+                                    ->same('password')
                                     ->label('Confirm Password')
                                     ->requiredWith('password')
                                     ->revealable(),
                                     // Using Select Component
                                 Forms\Components\Select::make('roles')
-                                ->relationship('roles', 'name')
+                                ->relationship('roles', 'name', 
+                                        fn(Builder $query) => $query->where("guard_name", "account"))
                                 ->multiple()
                                 ->preload()
                                 ->searchable()
@@ -283,6 +290,7 @@ class AccountResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
