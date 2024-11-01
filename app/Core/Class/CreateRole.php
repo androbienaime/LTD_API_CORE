@@ -4,6 +4,7 @@ namespace App\Core\Class;
 
 use Filament\Facades\Filament;
 use App\Models\Core\Roles\Role;
+use Illuminate\Support\Facades\Artisan;
 use Spatie\Permission\Models\Permission;
 use BezhanSalleh\FilamentShield\Facades\FilamentShield;
 
@@ -43,6 +44,12 @@ class CreateRole
         }
 
         $permissions = array_intersect($permissions, $AllPermission);
+
+        // Duplication des permissions entre les guards s'il n'existe pas déjà
+        $duplicate = new DuplicateExistingPermissionsAcrossGuards();
+        $duplicate->duplicate();
+
+        Artisan::call("permission:cache-reset");
 
         // Assigner toutes les permissions au rôle super_admin
         $superAdminRole->syncPermissions($permissions);
