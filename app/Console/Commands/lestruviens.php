@@ -45,23 +45,24 @@ class lestruviens extends Command
         $this->call("shield:upgrade");
         $this->info("Shield terminée");
 
-        
+
 
         $this->call("optimize");
         $this->info("Optimisation terminée");
 
-        $this->call("shield:generate", ["--all" => true, 
+        $this->call("shield:generate", ["--all" => true,
         "--ignore-existing-policies" => true]);
         $this->info("Permissions générées");
 
         $this->info(__("This step can take a long time, please be patient.."));
         $this->call("db:seed");
         $this->info("Seed terminée");
-        
+
         $this->info("Creating the super_admin user");
         $this->call("shield:super-admin");
         $this->info("The super_admin user has been created");
 
+        $this->call("storage:link");
         $this->info("LesTruviens installation completed");
     }
 }

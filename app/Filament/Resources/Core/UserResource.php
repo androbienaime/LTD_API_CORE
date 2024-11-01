@@ -51,7 +51,8 @@ class UserResource extends Resource
                     ->required()
                     ->maxLength(255),
                 Forms\Components\Select::make('roles')
-                    ->relationship('roles', 'name')
+                    ->relationship('roles', 'name',
+                        fn(Builder $query) => $query->where("guard_name", "web"))
                     ->multiple()
                     ->preload()
                     ->searchable()
