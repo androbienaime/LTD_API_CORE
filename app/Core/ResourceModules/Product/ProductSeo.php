@@ -17,6 +17,7 @@ class ProductSeo
             TextInput::make('slug')
                 ->live()
                 ->required()
+                ->unique(ignoreRecord: true)
                 ->maxLength(255)
                 ->columnSpanFull(),
 
@@ -31,7 +32,7 @@ class ProductSeo
                         ->columnSpanFull()
                         ->label(__("Meta Description"))
                         ->columnSpanFull(),
-                    
+
                         Select::make('is_redirection')
                             ->options(
                                 [
@@ -42,7 +43,7 @@ class ProductSeo
                             ->required()
                             ->default("0")
                             ->label("Redirection"),
-                        
+
                             Select::make('category_id')
                             ->label('Category')
                             ->searchable()
@@ -61,7 +62,7 @@ class ProductSeo
                                 'max:50',
                             ]),
             ])->columns(2)
-           
+
         ]);
     }
 }

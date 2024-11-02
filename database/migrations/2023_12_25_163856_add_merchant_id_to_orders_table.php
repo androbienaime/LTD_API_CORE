@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            $table->foreignId("merchant_id")->nullable(true);
+            $table->unsignedBigInteger("merchant_id")->nullable();
         });
     }
 
@@ -22,7 +22,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            $table->dropForeign("merchant_id");
+//            $table->dropForeign('orders_merchant_id_foreign');
+            $table->dropColumn("merchant_id");
         });
     }
 };

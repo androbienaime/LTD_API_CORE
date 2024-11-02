@@ -2,19 +2,19 @@
 
 namespace App\Observers;
 
+use App\Core\Trait\Models\AccountShopTrait;
+use App\Models\Core\Account;
 use App\Models\Core\Customer;
 
-class CustomerObserver
+class CustomerObserver extends BaseObserver
 {
     /**
      * Handle the Customer "created" event.
+     * fill tenant merchant_id
      */
-    public function created(Customer $customer): void
+    public function creating(Customer $customer): void
     {
-        if (auth('web')->check()) {
-            $customer->account_id = auth('web')->user()->account_id;
-            $customer->account()->associate(auth('web')->user()->account);
-        }
+        $this->setCommonFields($customer);
     }
 
     /**

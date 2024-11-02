@@ -28,7 +28,6 @@ class Customer extends Model
     ];
 
     protected static string $tableName = "customers";
-
     public function account() : BelongsTo
     {
         return $this->belongsTo(Account::class);
