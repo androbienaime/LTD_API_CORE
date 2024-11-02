@@ -25,13 +25,21 @@ use Filament\Forms\Components\SpatieTagsInput;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Icetalker\FilamentTableRepeater\Forms\Components\TableRepeater;
 
+/**
+ *
+ */
 class ProductDeclinations
 {
     use ProductTrait;
 
+    /**
+     * @var array
+     */
     protected static $values = [];
-    private static $attributeCache = null;
-    
+
+    /**
+     * @return mixed
+     */
     public static function form(){
         $attributes = Attribute::all();
         return Section::make("declination")
@@ -45,7 +53,7 @@ class ProductDeclinations
                                 ->label('Valeur')
                                 ->multiple()
                                 ->options(function () {
-                                    return self::getValues();                              
+                                    return self::getValues();
                                 })
                                 ->preload()
                                 // ->saveRelationshipsUsing(function ($component, $state, $record) {
@@ -91,32 +99,20 @@ class ProductDeclinations
                         Select::make('selected_values')
                         ->label(__("Values"))
                         ->multiple()
-                        ->live()
                         ->options(function(){
                             return  Attribute::all()->map(function($attribute) {
                                 return $attribute->values->pluck('value', 'id');
                             })->toArray();
-                        }),
+                        })->preload(false),
                         Grid::make('Attributes')
                         ->schema(
-                $attributes->map(function($attribute) {
-                                    return CheckboxList::make('attribute_' . $attribute->id)
+                            $attributes->map(function($attribute) {
+                                    return CheckboxList::make('selected_values')
                                         ->label($attribute->name)
-                                        ->options($attribute->values->pluck('value', 'id')) // Affiche les valeurs de l'attribut
-                                        ->reactive() // Rend les checkboxes réactives
-                                        ->debounce(0)
-                                        ->afterStateUpdated(function($state, Set $set, callable $get) {
-                                            static::updateSelectedTags($set, $get, $state);
-                                        })
-                                        ->selectAllAction(
-                                            fn (Action $action) => $action->label('Select all'),
-                                        )
-                                        ->deselectAllAction(
-                                            fn (Action $action) => $action->label('Deselect all'),
-
-                                        )
+                                        ->options($attribute->values->pluck('value', 'id'))
+                                        ->bulkToggleable()
                                         ->columns(6);
-                                        
+
                                 })->toArray()
                         ),
                     ])
@@ -124,7 +120,7 @@ class ProductDeclinations
                        if($data["selected_values"] == null){
                             return;
                        }
-                       
+
                         $countCombinationExist = 0;
                         $countCombinationNotExist = 0;
 
@@ -151,11 +147,11 @@ class ProductDeclinations
                             }else{
                                $countCombinationExist++;
                             }
-                            
+
                             $set("declinations", $items);
-                           
-                        } 
-                        
+
+                        }
+
                         if($countCombinationNotExist > 0){
                             Notification::make()
                                 ->title($countCombinationNotExist . ' Combination generate successfully')
@@ -172,17 +168,22 @@ class ProductDeclinations
             ]);
     }
 
+    /**
+     * @param array $newCombinaison
+     * @param array $tableauDeCombinaisons
+     * @return bool
+     */
     public static function combinationExist(array $newCombinaison, array $tableauDeCombinaisons) {
         // Trier la nouvelle combinaison pour comparaison
         $sortedNewCombinaison = $newCombinaison;
         sort($sortedNewCombinaison);
-    
+
         // Parcourir chaque combinaison existante dans le tableau
         foreach ($tableauDeCombinaisons as $combinaisonExistante) {
             // Trier la combinaison existante pour comparer avec la nouvelle combinaison triée
             $sortedCombinaisonExistante = $combinaisonExistante['value'];
             sort($sortedCombinaisonExistante);
-    
+
             // Comparer les deux combinaisons triées
             if ($sortedNewCombinaison === $sortedCombinaisonExistante) {
                 return true; // La combinaison existe déjà
@@ -191,6 +192,10 @@ class ProductDeclinations
         return false; // La combinaison n'existe pas encore
     }
 
+    /**
+     * @param $arrays
+     * @return array|array[]
+     */
     public static function generateCombinations($arrays) {
         $result = [[]];
         foreach ($arrays as $property => $propertyValues) {
@@ -205,40 +210,9 @@ class ProductDeclinations
         return $result;
     }
 
-    public static function updateSelectedTags(Set $set, callable $get, $state)
-    {
-        // Vérifier si les attributs sont déjà dans le cache (variable statique)
-        if (is_null(self::$attributeCache)) {
-            // Si non, les récupérer depuis la base de données
-            self::$attributeCache = Attribute::with('values')->get();
-        }
-
-        // Utiliser la variable cache pour obtenir les attributs
-        $attributes = self::$attributeCache;
-        $updatedState = [];
-
-        // Extraire les IDs sélectionnés pour tous les attributs
-        $selectedIds = [];
-        foreach ($attributes as $attribute) {
-            $selectedIds = array_merge($selectedIds, $get('attribute_' . $attribute->id) ?? []);
-        }
-
-        // Si aucun ID n'est sélectionné, pas besoin de continuer
-        if (!empty($selectedIds)) {
-            // Récupérer les valeurs d'attributs sélectionnés en une seule requête
-            $selectedTags = AttributeValue::whereIn('id', $selectedIds)->pluck('value_id')->toArray();
-
-            $updatedState = $selectedTags;
-        } else {
-            $updatedState = [];
-        }
-
-        // Mettre à jour l'état en une seule fois
-        $set('selected_values', $updatedState);
-    }
-
-
-
+    /**
+     * @return array
+     */
     public static function getValues(){
         // Récupérer tous les attributs avec leurs valeurs
         $attributes = Attribute::with('values')->get();
@@ -248,6 +222,6 @@ class ProductDeclinations
         foreach ($attributes as $attribute) {
             $options[$attribute->name] = $attribute->values->pluck('value', 'id')->toArray();
         }
-        return $options;  
+        return $options;
     }
 }
