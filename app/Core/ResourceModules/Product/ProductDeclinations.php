@@ -2,6 +2,9 @@
 
 namespace App\Core\ResourceModules\Product;
 
+use App\Forms\Components\SelectImage;
+use App\Models\Core\Product;
+use App\Models\User;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use App\Models\Core\Value;
@@ -37,6 +40,16 @@ class ProductDeclinations
      */
     protected static $values = [];
 
+    public static function getCleanOptionString(Model $model): string
+    {
+        return Purify::clean(
+            view('filament.components.select-user-result')
+                ->with('name', $model?->name)
+                ->with('email', $model?->email)
+                ->with('image', $model?->image)
+                ->render()
+        );
+    }
     /**
      * @return mixed
      */
@@ -45,6 +58,21 @@ class ProductDeclinations
         return Section::make("declination")
             ->label(__(""))
             ->schema([
+                Select::make("products")
+                    ->label("User")
+                    ->allowHtml()
+                    ->searchable()
+                    ->getSearchResultsUsing(function (string $search) {
+                        $users = User::where('name', 'like', "%{$search}%")->limit(50)->get();
+
+                        return $users->mapWithKeys(function ($user) {
+                            return [$user->getKey() => static::getCleanOptionString($user)];
+                        })->toArray();
+                    })->getOptionLabelUsing(function ($value): string {
+                        $user = User::find($value);
+
+                        return static::getCleanOptionString($user);
+                    }),
                 TableRepeater::make("declinations")
                     ->relationship()
                     ->schema([
