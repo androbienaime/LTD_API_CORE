@@ -8,6 +8,7 @@ use App\Models\User;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use App\Models\Core\Value;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use App\Models\Core\Attribute;
 use App\Core\Trait\ProductTrait;
@@ -27,6 +28,7 @@ use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\SpatieTagsInput;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Icetalker\FilamentTableRepeater\Forms\Components\TableRepeater;
+use Stevebauman\Purify\Facades\Purify;
 
 /**
  *
@@ -43,7 +45,7 @@ class ProductDeclinations
     public static function getCleanOptionString(Model $model): string
     {
         return Purify::clean(
-            view('filament.components.select-user-result')
+            view('forms.components.select-image')
                 ->with('name', $model?->name)
                 ->with('email', $model?->email)
                 ->with('image', $model?->image)
@@ -58,21 +60,21 @@ class ProductDeclinations
         return Section::make("declination")
             ->label(__(""))
             ->schema([
-                Select::make("products")
-                    ->label("User")
-                    ->allowHtml()
-                    ->searchable()
-                    ->getSearchResultsUsing(function (string $search) {
-                        $users = User::where('name', 'like', "%{$search}%")->limit(50)->get();
-
-                        return $users->mapWithKeys(function ($user) {
-                            return [$user->getKey() => static::getCleanOptionString($user)];
-                        })->toArray();
-                    })->getOptionLabelUsing(function ($value): string {
-                        $user = User::find($value);
-
-                        return static::getCleanOptionString($user);
-                    }),
+//                Select::make("product_id")
+//                    ->label("User")
+//                    ->allowHtml()
+//                    ->searchable()
+//                    ->getSearchResultsUsing(function (string $search) {
+//                        $users = Product::where('name', 'like', "%{$search}%")->limit(50)->get();
+//
+//                        return $users->mapWithKeys(function ($user) {
+//                            return [$user->getKey() => static::getCleanOptionString($user)];
+//                        })->toArray();
+//                    })->getOptionLabelUsing(function ($value): string {
+//                        $user = Product::find($value);
+//
+//                        return static::getCleanOptionString($user);
+//                    }),
                 TableRepeater::make("declinations")
                     ->relationship()
                     ->schema([
