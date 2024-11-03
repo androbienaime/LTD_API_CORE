@@ -111,5 +111,10 @@ class Product extends Model implements HasMedia
         return $count > 0 ? (string) "{$slug}-{$count}" :$slug;
     }
 
+    public function productCover()
+    {
+        return $this->getFirstMedia() ? $this->getFirstMedia()->getUrl("thumb") : null;
+    }
+
 
 }

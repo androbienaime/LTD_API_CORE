@@ -43,6 +43,7 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Columns\ImageColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\Builder\Block;
+use Stevebauman\Purify\Facades\Purify;
 use function Symfony\Component\String\match;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
@@ -67,7 +68,7 @@ use Thiktak\FilamentNestedBuilderForm\Forms\Components\NestedSubBuilder;
 class OrderResource extends Resource
 {
     use GenerateFieldsTrait, ProductTrait, CustomerTrait;
-    
+
     protected static ?string $model = Order::class;
     protected static $values = [];
     public static $declinationPrices = [];
@@ -83,7 +84,16 @@ class OrderResource extends Resource
         return __("Orders");
     }
 
-    
+    public static function getCleanOptionString(Model $model): string
+    {
+        return Purify::clean(
+            view('forms.components.select-image')
+                ->with('name', $model?->name)
+                ->with('image', $model?->productCover())
+                ->render()
+        );
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -156,13 +166,25 @@ class OrderResource extends Resource
                             ->relationship()
                             ->schema([
                                 Select::make('product_id')
-                                ->relationship(name:'product', titleAttribute:'name', 
+                                ->relationship(name:'product', titleAttribute:'name',
                                     modifyQueryUsing: fn(Builder $query) => $query->where("status", true))
-                                ->getOptionLabelFromRecordUsing(fn (Model $record) => self::labelProduct($record))
+                                ->getOptionLabelFromRecordUsing(fn (Model $record) => static::getCleanOptionString($record))
                                 ->label(__("Product"))
                                 ->required()
                                 ->preload()
                                 ->searchable()
+                                ->allowHtml()
+                                ->getSearchResultsUsing(function (string $search) {
+                                    $product = Product::where('name', 'like', "%{$search}%")->limit(50)->get();
+
+                                    return $product->mapWithKeys(function ($product) {
+                                        return [$product->getKey() => static::getCleanOptionString($product)];
+                                    })->toArray();
+                                })->getOptionLabelUsing(function ($value): string {
+                                    $product = Product::find($value);
+
+                                    return static::getCleanOptionString($product);
+                                })
                                 ->createOptionForm([
                                     self::prod(),
                                 ])
@@ -179,7 +201,7 @@ class OrderResource extends Resource
                                     }
 
                                     $set("delivery_id", null);
-                                }) 
+                                })
                                 ->afterStateHydrated(function (Forms\Get $get, Forms\Set $set, $state, $record) {
                                     $product = Product::find($get('product_id'));
                                         if($product != null && self::hasDeclinations(Product::find($get('product_id')))){
@@ -238,14 +260,14 @@ class OrderResource extends Resource
                                 Grid::make()
                                     ->schema([
                                         Fieldset::make("declinations")
-                                        ->schema(function(Get $get, $state, Set $set, $livewire){                                               
+                                        ->schema(function(Get $get, $state, Set $set, $livewire){
                                                 $fields = $get("declination") ?? [];
                                                 return self::GenerateFields($fields, [$state, $get, $set, $livewire]);
                                         })->label("Declination")
                                         ->columns(2)
-    
+
                                     ])
-                                    ->hidden(fn(Get $get) => 
+                                    ->hidden(fn(Get $get) =>
                                        !self::hasDeclinations(Product::find($get('product_id')))
                                     )
                             ])
@@ -270,7 +292,7 @@ class OrderResource extends Resource
                         Toggle::make("has_delivery")
                         ->label("has Delivery")
                         ->lazy()
-                        ->afterStateUpdated(fn(Get $get, Set $set) => 
+                        ->afterStateUpdated(fn(Get $get, Set $set) =>
                             $set("delivery.has_delivery", $get("has_delivery")))
                         ->columnSpanFull(),
                         Fieldset::make()
@@ -283,7 +305,7 @@ class OrderResource extends Resource
                                         Hidden::make("has_delivery")
                                         ->label("has Delivery"),
                                     Grid::make()
-                                        ->schema([                                      
+                                        ->schema([
                                             Toggle::make("use_customer_address")
                                                 ->label("Use customer address")
                                                 ->live(),
@@ -294,7 +316,7 @@ class OrderResource extends Resource
                                                     ->numeric()
                                                     ->lazy()
                                                     ->required(),
-                                                    
+
                                             DateTimePicker::make('delivery_date')
                                                     ->live()
                                                     ->withoutTime()
@@ -342,7 +364,7 @@ class OrderResource extends Resource
                                         ])
                                         ->hidden(function($livewire, $get){
                                             $hidden = false;
-                                            if($get("use_customer_address") 
+                                            if($get("use_customer_address")
                                             && self::hasCustomerAddress(Customer::find($livewire->data["customer_id"]))){
                                                 $hidden = true;
                                             }
@@ -366,7 +388,7 @@ class OrderResource extends Resource
                                         })
 
                                 ])
-                               
+
                             ])->afterStateUpdated(function(Get $get, Set $set, $livewire){
                                 self::updateTotals($get, $set, $livewire);
                             })
@@ -377,26 +399,26 @@ class OrderResource extends Resource
 
                                         $delivery_date = $data["delivery_date"];
                                         unset($data["delivery_date"]);
-                                        
+
                                         $carrier_id = $data["carrier_id"];
                                         unset($data["carrier_id"]);
-                                        
+
                                         $use = $data["use_customer_address"];
                                         unset($data["use_customer_address"]);
-                                    
+
                                     $hasCustomer = self::hasCustomerAddress(Customer::find($livewire->data["customer_id"]));
                                     $address_id = null;
 
                                     ($hasCustomer && $use) ? $address_id = Customer::find($livewire->data["customer_id"])->addressCustomers->first()->address_id : $address_id = Address::createOrFirst($data)->id;
                                     $delivery = [
                                         "delivery_date" => $delivery_date,
-                                        "costs" => $costs, 
+                                        "costs" => $costs,
                                         "address_id" => $address_id,
                                         "carrier_id" => $carrier_id
                                     ];
-                                    
+
                                     unset($data);
-                                    
+
                                     return $delivery;
                                 }
                                 return [];
@@ -421,8 +443,8 @@ class OrderResource extends Resource
 
                                     $delivery = [
                                         "delivery_date" => $delivery_date,
-                                        "costs" => $costs, 
-                                        "address_id" => $address_id, 
+                                        "costs" => $costs,
+                                        "address_id" => $address_id,
                                         "carrier_id" => $carrier_id
                                     ];
                                     unset($data);
@@ -475,7 +497,7 @@ class OrderResource extends Resource
                     ->description(function($record){
                         if(self::hasCustomerAddress($record->customer)){
                             $addressCustomer = $record->customer->addressCustomers->first()->address;
-                            return $addressCustomer->phone_code . " " . $addressCustomer->phone; 
+                            return $addressCustomer->phone_code . " " . $addressCustomer->phone;
                         }
                     })
                     ->sortable(['customer.firstname', 'customer.lastname']),
@@ -572,7 +594,7 @@ class OrderResource extends Resource
     }
 
     // public static function updateDeclinationsPrice(Get $get, Set $set, $livewire){
-        
+
     //     $orderProducts = $get('orderProducts');
     //     $declinationPrices = collect($orderProducts)->map(function ($item) {
     //         $declination = Declination::find($item['declination_id'] ?? null);
@@ -582,7 +604,7 @@ class OrderResource extends Resource
     //     $livewire->declinationPrices = $declinationPrices;
     // }
     private static function prod(){
-       return 
+       return
             Grid::make()
             ->schema([
                     Grid::make()
@@ -607,14 +629,14 @@ class OrderResource extends Resource
 
     public static function updateTotals(Get $get, Set $set, $livewire = null): float
     {
-        
+
         $selectedProducts = collect($get('orderProducts'))->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
         $declinationPricesSum = array_sum(self::$declinationPrices ?? []);
         $costs = $get("delivery.costs");
         // dd(self::$declinationPrices);
 
         $prices = Product::find($selectedProducts->pluck('product_id'))->pluck('price', 'id');
-        
+
         $subtotal = $selectedProducts->reduce(function ($acc, $product) use ($prices) {
             $productId = $product["product_id"];
             $productModel = Product::find($productId);
@@ -639,7 +661,7 @@ class OrderResource extends Resource
             ->products($selectedProducts->all())
             ->discount(code : $code, total : $total);
 
-        
+
         $set('total_amount_order', number_format(($total - $getCouponDiscount) + $subtotal["deliveryTotal"] + $costs, 2, '.', ''));
         $set("total_discount", number_format($subtotal["discountTotal"] + $getCouponDiscount, 2, '.', ''));
         if(!empty(self::$declinationPrices)){
@@ -690,9 +712,9 @@ class OrderResource extends Resource
                         $attribute = $p->attributeValue->first()->attribute;
                         self::attributesExist($options, $attribute) ?: $options[$attribute->id][] = $attribute;
                     }
-                    
+
                 }
-                
+
                 $valuesId = array_map(function($option) use($state){
                         if(isset($state[$option[0]->name])){
                             return $state[$option[0]->name];
@@ -718,7 +740,7 @@ class OrderResource extends Resource
                         if($state["product_id"] == $value["product_id"]){
                             $livewire->data["orderProducts"][$key] += ["declination_price" => $declination->price];
                             self::$declinationPrices[$key] = $declination->price;
-                            
+
                         }
                     }
                     self::updateTotals($get, $set, $livewire);
@@ -730,7 +752,7 @@ class OrderResource extends Resource
             }
         }
 
-        
+
     }
     public static function updateFieldsDeclination($product, $set, $record = null){
         $options = [];
@@ -740,9 +762,9 @@ class OrderResource extends Resource
                 $attribute = $p->attributeValue->first()->attribute;
                 self::attributesExist($options, $attribute) ?  $options[$attribute->id][] = $p : $options[$attribute->id][] = $p;
             }
-            
+
         }
-        $fields = []; 
+        $fields = [];
         foreach($options as $key => $value){
                 $values = [];
                foreach($value as $val){
@@ -763,7 +785,7 @@ class OrderResource extends Resource
                 ];
         }
 
-        $set("declination", $fields);   
+        $set("declination", $fields);
     }
     public static function getDeclinationRecord($record = null, $key){
         $result = null;
@@ -771,7 +793,7 @@ class OrderResource extends Resource
             $declinationRecord = $record->declination_id;
             if(!is_null($declinationRecord)){
             $values = Declination::all()->find($declinationRecord)->values;
-                
+
                 if(count($values) > 0){
                     foreach ($values as $value) {
                         if($value->attributeValue->first()->attribute->id == $key){
@@ -801,10 +823,10 @@ class OrderResource extends Resource
                                 $total =0;
                                 $discount=0;
                                 $items = $get('orderProducts');
-                                
+
                                 $productIds = [];
                                 foreach ($items as $orderItem){
-                                    $productIds[] = $orderItem['product_id']; 
+                                    $productIds[] = $orderItem['product_id'];
                                     $discount += self::productDiscount(Product::find($orderItem['product_id']));
 
                                 }
@@ -819,7 +841,7 @@ class OrderResource extends Resource
                                     $set("total_discount", $discount);
                                     $set("coupon_id", $coupon->id);
                                     self::updateTotals($get, $set, $livewire);
-                                    
+
                                     Notification::make()
                                     ->title(trans('Coupons appliquer'))
                                     ->success()
@@ -842,6 +864,6 @@ class OrderResource extends Resource
             ];
     }
 
-  
+
 
 }

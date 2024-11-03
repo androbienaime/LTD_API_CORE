@@ -42,16 +42,6 @@ class ProductDeclinations
      */
     protected static $values = [];
 
-    public static function getCleanOptionString(Model $model): string
-    {
-        return Purify::clean(
-            view('forms.components.select-image')
-                ->with('name', $model?->name)
-                ->with('email', $model?->email)
-                ->with('image', $model?->image)
-                ->render()
-        );
-    }
     /**
      * @return mixed
      */
@@ -60,21 +50,6 @@ class ProductDeclinations
         return Section::make("declination")
             ->label(__(""))
             ->schema([
-//                Select::make("product_id")
-//                    ->label("User")
-//                    ->allowHtml()
-//                    ->searchable()
-//                    ->getSearchResultsUsing(function (string $search) {
-//                        $users = Product::where('name', 'like', "%{$search}%")->limit(50)->get();
-//
-//                        return $users->mapWithKeys(function ($user) {
-//                            return [$user->getKey() => static::getCleanOptionString($user)];
-//                        })->toArray();
-//                    })->getOptionLabelUsing(function ($value): string {
-//                        $user = Product::find($value);
-//
-//                        return static::getCleanOptionString($user);
-//                    }),
                 TableRepeater::make("declinations")
                     ->relationship()
                     ->schema([
