@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Core\ProductResource\Pages;
 
 use App\Filament\Resources\Core\ProductResource;
+use App\Models\Core\Product;
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 
@@ -15,7 +16,10 @@ class ViewProduct extends ViewRecord
         return [
             Actions\EditAction::make(),
         ];
-   
+
+
     }
+
+
 
 }

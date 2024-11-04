@@ -166,8 +166,7 @@ class OrderResource extends Resource
                             ->relationship()
                             ->schema([
                                 Select::make('product_id')
-                                ->relationship(name:'product', titleAttribute:'name',
-                                    modifyQueryUsing: fn(Builder $query) => $query->where("status", true))
+                                ->relationship(name:'product', titleAttribute:'name')
                                 ->getOptionLabelFromRecordUsing(fn (Model $record) => static::getCleanOptionString($record))
                                 ->label(__("Product"))
                                 ->required()

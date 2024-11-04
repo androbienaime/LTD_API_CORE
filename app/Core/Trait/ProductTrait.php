@@ -22,18 +22,18 @@ trait ProductTrait
             }
         }
 
-        
+
         // Si aucune correspondance n'a été trouvée, retourner false
         return false;
     }
 
     public static function hasDeclinations(?Product $product){
-        if($product == null){ 
-            return; 
+        if($product == null){
+            return;
         }
 
         $hasDeclination = false;
-        if($product->product_with_declination == true && $product->declinations->count() > 0){
+        if($product->has_declination == true && $product->declinations->count() > 0){
             $hasDeclination = true;
            //
         }
@@ -44,7 +44,7 @@ trait ProductTrait
     public static function productDiscount(?Product $product){
         $discount = 0;
         if($product != null){
-            if($product->has_discount &&                                         
+            if($product->has_discount &&
                 Carbon::parse($product->productDiscount->end_date)->isFuture()){
                     $discount = $product->productDiscount->discount;
             }
@@ -55,7 +55,7 @@ trait ProductTrait
 
     public static function productDeliveryCosts(?Delivery $delivery){
         $deliveryPrice = 0;
-       
+
         if($delivery != null){
             if($delivery->costs){
                 $deliveryPrice = $delivery->costs;

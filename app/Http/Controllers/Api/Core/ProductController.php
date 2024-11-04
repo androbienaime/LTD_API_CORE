@@ -18,6 +18,7 @@ class ProductController extends Controller
     {
         return ProductResource::collection(Product::with("media")->get()->map(function($product){
             return [
+                    "declination" => Product::getDeclinations($product),
                     "id"=> $product->id,
                     "name" => $product->name,
                     "description" => $product->description,

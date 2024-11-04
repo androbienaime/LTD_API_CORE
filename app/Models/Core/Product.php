@@ -2,6 +2,8 @@
 
 namespace App\Models\Core;
 
+use App\Core\Trait\Concerns\HasDeclination;
+use App\Core\Trait\Concerns\HasStatus;
 use App\Core\Trait\Models\AccountGlobalScopeTrait;
 use App\Core\Trait\Models\AccountShopTrait;
 use Spatie\Tags\HasTags;
@@ -38,7 +40,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  */
 class Product extends Model implements HasMedia
 {
-    use HasFactory, InteractsWithMedia, HasTags, AccountGlobalScopeTrait, AccountShopTrait;
+    use HasFactory,
+        InteractsWithMedia,
+        HasTags,
+        AccountGlobalScopeTrait,
+        AccountShopTrait,
+        HasStatus,
+        HasDeclination;
 
     protected $guarded;
 
