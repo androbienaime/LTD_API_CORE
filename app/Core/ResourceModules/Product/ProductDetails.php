@@ -23,7 +23,7 @@ class ProductDetails
     public static function form(){
         return Grid::make()
         ->schema([
-            
+
         Section::make()
             ->schema([
                 Grid::make()
@@ -42,8 +42,8 @@ class ProductDetails
                                 ->panelLayout("grid")
                                 ,
                     ]),
-                
-            
+
+
                 RichEditor::make('description')
                     ->maxLength(255)
                     ->toolbarButtons([
@@ -61,7 +61,7 @@ class ProductDetails
                         Toggle::make('is_trend')
                             ->label("Trend")
                             ->required(),
-                        Toggle::make('available_market')
+                        Toggle::make('is_available_market')
                             ->required(),
                         Toggle::make('status')
                             ->required(),
@@ -70,10 +70,10 @@ class ProductDetails
                             ->required(),
                     ])->columns(4),
             ])->columnSpan(8),
-       
+
         Section::make()
                 ->schema([
-                    Radio::make("product_with_declination")
+                    Radio::make("has_declination")
                         ->boolean()
                         ->default(false),
                     TextInput::make('price')
@@ -151,7 +151,7 @@ return Grid::make()
                             foreach ($attributes as $attribute) {
                                 $options[$attribute->name] = $attribute->values->pluck('value', 'id')->toArray();
                             }
-                            return $options;                                
+                            return $options;
                         })
                         // ->saveRelationshipsUsing(function ($component, $state, $record) {
                         //     // Synchroniser les catégories dans la table pivot sans toucher à `category_id` du modèle principal

@@ -3,6 +3,7 @@
 namespace App\Models\Core;
 
 use App\Core\Trait\Models\AccountGlobalScopeTrait;
+use App\Core\Trait\Models\AccountShopTrait;
 use Spatie\Tags\HasTags;
 use App\Models\Core\Shop;
 use App\Models\Core\Brand;
@@ -37,7 +38,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  */
 class Product extends Model implements HasMedia
 {
-    use HasFactory, InteractsWithMedia, HasTags, AccountGlobalScopeTrait;
+    use HasFactory, InteractsWithMedia, HasTags, AccountGlobalScopeTrait, AccountShopTrait;
 
     protected $guarded;
 
@@ -48,6 +49,7 @@ class Product extends Model implements HasMedia
             ->width(1080)
             ->height(300)
             ->sharpen(10);
+
     }
 
     public function currency() : BelongsTo{
@@ -106,9 +108,12 @@ class Product extends Model implements HasMedia
     }
     public static function createUniqueSlug($name){
         $slug = Str::slug($name);
+        $accountConnected = Account::find(auth("account")->id());
+        $shop = self::findShopByAccount($accountConnected);
+
         $count = Product::where("slug", 'LIKE', "{$slug}%")->count();
 
-        return $count > 0 ? (string) "{$slug}-{$count}" :$slug;
+        return $count > 0 ? (string) "{$shop->slug}-{$slug}-{$count}" :$slug;
     }
 
     public function productCover()

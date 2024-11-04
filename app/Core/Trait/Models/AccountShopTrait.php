@@ -8,7 +8,7 @@ use App\Models\Core\Shop;
 
 trait AccountShopTrait{
 
-    public function findShopByAccount(Account $account){
+    public static function findShopByAccount(Account $account){
         $shop = null;
 
         if($account){
@@ -21,4 +21,6 @@ trait AccountShopTrait{
 
         return $shop;
     }
+
+
 }

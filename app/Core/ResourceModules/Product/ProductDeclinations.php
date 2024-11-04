@@ -162,6 +162,7 @@ class ProductDeclinations
                                 ->title($countCombinationNotExist . ' Combination generate successfully')
                                 ->success()
                                 ->send();
+                            $set("has_declination", true);
                         }
                         if($countCombinationExist > 0){
                             Notification::make()

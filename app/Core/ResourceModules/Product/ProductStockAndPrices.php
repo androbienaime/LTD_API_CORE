@@ -16,7 +16,7 @@ class ProductStockAndPrices
 
     public static function form(){
         return Grid::make()
-        ->schema([  
+        ->schema([
             Fieldset::make()
             ->label(__("Gestion Stock"))
                 ->schema([
@@ -39,7 +39,7 @@ class ProductStockAndPrices
                         ->hidden(fn (Get $get) => !$get('is_in_stock'))
                         ->default(false)
                         ->required(),
-                   
+
                 ])->columns(3),
                 Grid::make()
                 ->schema([
@@ -49,24 +49,29 @@ class ProductStockAndPrices
                     ->numeric()
                     ->minValue(0)
                     ->default(0)
-                    ->columnSpanFull(),
+                    ->columnSpanFull()
+                    ->required(),
 
                     TextInput::make('min_stock_alert')
                     ->live()
                     ->hidden(fn (Get $get) => !$get('is_in_stock') || !$get('has_stock_alert'))
                     ->minValue(0)
+                    ->lt("max_stock_alert")
+                    ->required(fn(callable $get) => $get("max_stock_alert") == null)
                     ->numeric()
                     ->default(0),
                     TextInput::make('max_stock_alert')
                     ->live()
                     ->minValue(0)
+                    ->gt('min_stock_alert')
+                    ->required(fn(callable $get) => $get("min_stock_alert") == null)
                     ->hidden(fn (Get $get) => !$get('is_in_stock') || !$get('has_stock_alert'))
                     ->numeric()
                     ->default(0),
 
                 ])->columns(2)
 
-               
+
                 ]),
                 Fieldset::make()
                 ->label(__("Price"))
@@ -95,6 +100,7 @@ class ProductStockAndPrices
                         TextInput::make("discount")
                         ->live()
                         ->numeric()
+                        ->required()
                         ->minValue(0)
                         ->maxValue(100)
                         ->label(__("Discount"))
@@ -104,10 +110,13 @@ class ProductStockAndPrices
                             ->schema([
                                 DateTimePicker::make('start_date')
                                 ->live()
+                                ->beforeOrEqual("end_date")
+                                ->after("yesterday")
                                 ->label(__("Start Date")),
                                 DateTimePicker::make('end_date')
                                 ->live()
                                 ->rule('after:now')
+                                ->afterOrEqual("start_date")
                                 ->label(__("End Date")),
                             ])->columns(2)
                     ])

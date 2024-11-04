@@ -1,0 +1,46 @@
+<?php
+
+namespace Database\Factories\Core;
+
+use App\Models\Core\Brand;
+use App\Models\Core\Category;
+use App\Models\Core\Currency;
+use App\Models\Core\Product;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Model>
+ */
+class ProductFactory extends Factory
+{
+    protected  $model = Product::class;
+    /**
+     * Define the model's default state.
+     *
+     * @return array<string, mixed>
+     */
+    public function definition(): array
+    {
+        return [
+            "name" => $this->faker->name(),
+            "price" => $this->faker->randomFloat(2, 10),
+            "slug" => $this->faker->slug(),
+            "description" => $this->faker->text(),
+            "sku" => $this->faker->unique()->randomNumber(),
+            "product_type" => $this->faker->randomElement(["product", "service", "Digital"]),
+            "currency_id" => Currency::factory(),
+            "category_id" => Category::factory(),
+            "brand_id" => Brand::factory(),
+
+
+        ];
+    }
+
+    public function configure(){
+        return $this->afterCreating(function (Product $product){
+            for($i=0; $i < random_int(1, 5); $i++) {
+                $product->addMediaFromUrl('https://lorempicture.point-sys.com/400/300/alimentation/')->toMediaCollection('images');
+            }
+        });
+    }
+}
