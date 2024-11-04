@@ -2,10 +2,12 @@
 
 namespace Database\Factories\Core;
 
+use App\Models\Core\Account;
 use App\Models\Core\Brand;
 use App\Models\Core\Category;
 use App\Models\Core\Currency;
 use App\Models\Core\Product;
+use App\Models\Core\Shop;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -27,19 +29,21 @@ class ProductFactory extends Factory
             "slug" => $this->faker->slug(),
             "description" => $this->faker->text(),
             "sku" => $this->faker->unique()->randomNumber(),
-            "product_type" => $this->faker->randomElement(["product", "service", "Digital"]),
+            "product_type" => $this->faker->randomElement(["product", "service", "digital"]),
             "currency_id" => Currency::factory(),
-            "category_id" => Category::factory(),
-            "brand_id" => Brand::factory(),
-
+            "shop_id" => Shop::factory(),
+            "merchant_id" => Account::factory(),
 
         ];
     }
 
-    public function configure(){
+    public function configure() : static{
         return $this->afterCreating(function (Product $product){
+            $product->categories()->attach(Category::factory());
+            $product->brands()->attach(Brand::factory());
+
             for($i=0; $i < random_int(1, 5); $i++) {
-                $product->addMediaFromUrl('https://lorempicture.point-sys.com/400/300/alimentation/')->toMediaCollection('images');
+                $product->addMediaFromUrl('https://via.placeholder.com/150')->toMediaCollection('images');
             }
         });
     }

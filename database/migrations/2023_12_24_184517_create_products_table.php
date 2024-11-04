@@ -15,10 +15,10 @@ return new class extends Migration
             $table->id();
 
             // Product details
-            $table->json("name");
+            $table->string("name");
             $table->string("slug")->unique();
-            $table->json("description")->nullable(true);
-            $table->json("article")->nullable(true);
+            $table->string("description")->nullable(true);
+            $table->string("article")->nullable(true);
             $table->string("product_type")->default("product");
             $table->string("sku")->nullable(true);
 
