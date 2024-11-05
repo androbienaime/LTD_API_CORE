@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('values', function (Blueprint $table) {
             $table->id();
+            $table->foreignId("attribute_id")->constrained("attributes")->cascadeOnDelete();
             $table->string("value");
             $table->string("color")->nullable(true);
             $table->string("url")->nullable(true);

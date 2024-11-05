@@ -18,6 +18,9 @@ return new class extends Migration
             $table->string("reference")->nullable(true);
             $table->decimal("price", 16, 5)->default(0);
             $table->integer("quantity")->default(0);
+
+            $table->foreignId("product_id")->constrained()->cascadeOnDelete();
+
             $table->timestamps();
         });
     }

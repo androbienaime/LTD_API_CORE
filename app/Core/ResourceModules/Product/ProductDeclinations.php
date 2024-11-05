@@ -2,33 +2,20 @@
 
 namespace App\Core\ResourceModules\Product;
 
-use App\Forms\Components\SelectImage;
-use App\Models\Core\Product;
-use App\Models\User;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use App\Models\Core\Value;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Http\Request;
 use App\Models\Core\Attribute;
 use App\Core\Trait\ProductTrait;
-use Illuminate\Support\HtmlString;
-use App\Models\Core\AttributeValue;
 use Filament\Forms\Components\Grid;
-use Illuminate\Support\Facades\Mail;
-use App\Forms\Components\ModalButton;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Fieldset;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Actions\Action;
-use Filament\Forms\Components\SpatieTagsInput;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Icetalker\FilamentTableRepeater\Forms\Components\TableRepeater;
-use Stevebauman\Purify\Facades\Purify;
 
 /**
  *
@@ -131,8 +118,12 @@ class ProductDeclinations
 
                         $options = [];
                         foreach($data["selected_values"] as $p){
-                            $attribute = AttributeValue::with("attribute")->find($p)->attribute;
-                            self::attributesExist($options, $attribute) ? $options[$attribute->id][] = Value::all()->find($p) : $options[$attribute->id][] = Value::all()->find($p);
+
+                            $value = Value::find($p);
+                            $attribute = $value->attribute;
+
+                            $options[$attribute->id][] = $value;
+
                         }
                         // Générer les combinaisons
                         $combinations = self::generateCombinations($options);

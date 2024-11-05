@@ -18,9 +18,8 @@ use Filament\Resources\RelationManagers\RelationManager;
 
 class ValueRelationManager extends RelationManager
 {
-    use FillTableToManyTrait;
 
-    protected static string $relationship = 'attributeValue';
+    protected static string $relationship = 'values';
 
     public function form(Form $form): Form
     {
@@ -28,19 +27,19 @@ class ValueRelationManager extends RelationManager
             ->schema([
                 Grid::make()
                 ->schema([
-                    Forms\Components\TextInput::make('value.value')
+                    Forms\Components\TextInput::make('value')
                         ->required()
                         ->maxLength(255),
                 ])->columns(2),
                 Grid::make()
                 ->schema([
-                        Forms\Components\TextInput::make('value.url')
+                        Forms\Components\TextInput::make('url')
                         ->maxLength(255),
-                        Forms\Components\TextInput::make('value.meta_title')
+                        Forms\Components\TextInput::make('meta_title')
                         ->label(__("Meta Title"))
                         ->maxLength(255),
-                        Forms\Components\Toggle::make('value.indexable'),
-                        Forms\Components\ColorPicker::make('value.color')
+                        Forms\Components\Toggle::make('indexable'),
+                        Forms\Components\ColorPicker::make('color')
                         ->hidden($this->getOwnerRecord()->type != "color"),
                 ])->columns(2)
             ]);
@@ -49,15 +48,15 @@ class ValueRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('value')
+            ->recordTitleAttribute('values')
             ->columns([
-                Tables\Columns\TextColumn::make('value.value')
+                Tables\Columns\TextColumn::make('value')
                 ->label("value"),
-                Tables\Columns\TextColumn::make('value.url')
+                Tables\Columns\TextColumn::make('url')
                 ->label("url"),
-                ColorColumn::make('value.color')
+                ColorColumn::make('color')
                 ->label("color"),
-                ToggleColumn::make('value.indexable')
+                ToggleColumn::make('indexable')
                 ->label("indexable")
 
 
@@ -78,26 +77,5 @@ class ValueRelationManager extends RelationManager
                 ]),
             ]);
     }
-
-    protected function configureCreateAction(Tables\Actions\CreateAction $action): void
-        {
-            parent::configureCreateAction($action);
-            $action->mutateFormDataUsing(function ($data) {   
-                return self::processFillTable($data["value"], Value::class, "value_id");
-
-            });
-    
-        }
-
-        protected function configureSaveAction(Tables\Actions\EditAction $action): void
-        {
-            parent::configureEditAction($action);
-            $action->mutateFormDataUsing(function ($data) {   
-                dd($data);
-                return self::processFillTable($data["value"], Value::class, "value_id");
-
-            });
-    
-        }
 
 }

@@ -2,9 +2,6 @@
 
 namespace App\Filament\Resources\Core;
 
-use Closure;
-use Exception;
-use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Tables;
 use Filament\Forms\Get;
@@ -14,64 +11,46 @@ use App\Models\Core\Order;
 use Filament\Tables\Table;
 use App\Core\Class\Coupons;
 use App\Models\Core\Coupon;
-use Illuminate\Support\Str;
 use App\Models\Core\Product;
 use App\Models\Core\Delivery;
 use App\Models\Location\City;
 use App\Models\Core\Attribute;
 use App\Models\Location\State;
-use Filament\Facades\Filament;
 use App\Core\Trait\ProductTrait;
 use App\Models\Core\Declination;
-use App\Models\Core\OrderStatus;
 use App\Models\Location\Country;
 use Filament\Resources\Resource;
-use App\Core\Class\GenerateFields;
 use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Section;
-use Filament\Resources\Components\Tab;
 use App\Core\Trait\GenerateFieldsTrait;
 use Filament\Forms\Components\Fieldset;
-use Filament\Forms\Components\Livewire;
 use Filament\Forms\Components\Repeater;
 use Illuminate\Database\Eloquent\Model;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
-use Filament\Tables\Columns\ImageColumn;
 use Illuminate\Database\Eloquent\Builder;
-use Filament\Forms\Components\Builder\Block;
 use Stevebauman\Purify\Facades\Purify;
-use function Symfony\Component\String\match;
-use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Concerns\InteractsWithForms;
-use App\Core\ResourceModules\Product\ProductSeo;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Core\ResourceModules\Product\ProductDetails;
 use App\Filament\Resources\Core\OrderResource\Pages;
-use App\Core\ResourceModules\Product\ProductShippings;
-use App\Core\ResourceModules\Product\ProductDeclinations;
-use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
-use App\Core\ResourceModules\Product\ProductStockAndPrices;
 use App\Core\Trait\CustomerTrait;
-use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
-use Pelmered\FilamentMoneyField\Tables\Columns\MoneyColumn;
-use App\Filament\Resources\Core\OrderResource\RelationManagers;
 use App\Models\Core\Address;
 use App\Models\Core\Customer;
 use Filament\Forms\Components\Toggle;
-use Thiktak\FilamentNestedBuilderForm\Forms\Components\NestedSubBuilder;
 
+/**
+ * OrderResource Class
+ * Manages order-related operations in the Filament admin panel
+ */
 class OrderResource extends Resource
 {
     use GenerateFieldsTrait, ProductTrait, CustomerTrait;
 
     protected static ?string $model = Order::class;
     protected static $values = [];
-    public static $declinationPrices = [];
+    public static $declinationPrices = []; // Stores prices for product variations
 
     // protected static ?string $navigationIcon = 'heroicon-o-shopping-bag';
 
@@ -84,6 +63,9 @@ class OrderResource extends Resource
         return __("Orders");
     }
 
+    /**
+     * Returns clean HTML for select options with product image and name
+     */
     public static function getCleanOptionString(Model $model): string
     {
         return Purify::clean(
@@ -94,6 +76,9 @@ class OrderResource extends Resource
         );
     }
 
+    /**
+     * Defines the form structure for creating/editing orders
+     */
     public static function form(Form $form): Form
     {
         return $form
@@ -193,7 +178,7 @@ class OrderResource extends Resource
                                         $discount = self::productDiscount($product);
                                         $set("discount", $discount);
 
-                                        if(self::hasDeclinations(Product::find($get('product_id')))){
+                                        if(Product::hasDeclinations(Product::find($get('product_id')))){
                                             self::updateFieldsDeclination($product, $set);
                                         }
                                         self::updateSubTotal($get, $set);
@@ -203,7 +188,7 @@ class OrderResource extends Resource
                                 })
                                 ->afterStateHydrated(function (Forms\Get $get, Forms\Set $set, $state, $record) {
                                     $product = Product::find($get('product_id'));
-                                        if($product != null && self::hasDeclinations(Product::find($get('product_id')))){
+                                        if($product != null && Product::hasDeclinations(Product::find($get('product_id')))){
                                             self::updateFieldsDeclination($product, $set, $record);
                                         }
                                         self::updateSubTotal($get, $set);
@@ -267,7 +252,7 @@ class OrderResource extends Resource
 
                                     ])
                                     ->hidden(fn(Get $get) =>
-                                       !self::hasDeclinations(Product::find($get('product_id')))
+                                       !Product::hasDeclinations(Product::find($get('product_id')))
                                     )
                             ])
                             ->columns(4)
@@ -486,6 +471,9 @@ class OrderResource extends Resource
                   ])->columns(3),
         ]);
     }
+    /**
+     * Defines the table structure for listing orders
+     */
     public static function table(Table $table): Table
     {
         return $table
@@ -626,14 +614,22 @@ class OrderResource extends Resource
             ]);
     }
 
+    /**
+     * Calculates total order amount including products, discounts, and delivery
+     */
     public static function updateTotals(Get $get, Set $set, $livewire = null): float
     {
-
-        $selectedProducts = collect($get('orderProducts'))->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
+        // Calculate product totals
+        $selectedProducts = collect($get('orderProducts'))
+            ->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
+        
+        // Add declination prices
         $declinationPricesSum = array_sum(self::$declinationPrices ?? []);
+        
+        // Get delivery costs
         $costs = $get("delivery.costs");
-        // dd(self::$declinationPrices);
 
+        // Calculate prices and discounts
         $prices = Product::find($selectedProducts->pluck('product_id'))->pluck('price', 'id');
 
         $subtotal = $selectedProducts->reduce(function ($acc, $product) use ($prices) {
@@ -671,18 +667,26 @@ class OrderResource extends Resource
         return $total;
     }
 
-    public static function updateSubTotal($get, $set){
-        if(!is_null(Product::find($get('product_id')))){
+    /**
+     * Updates subtotal for a single product including declinations and delivery
+     */
+    public static function updateSubTotal($get, $set)
+    {
+        if(!is_null(Product::find($get('product_id')))) {
             $product = Product::find($get('product_id'));
             $discount = self::productDiscount($product);
             $delivery_price = self::productDeliveryCosts(Delivery::find($get("delivery_id")));
             $declinationPrice = Declination::find($get("declination_id"))->price ?? 0;
 
-            $set("sub_totals", ($product->price+$declinationPrice+$delivery_price-$discount)*$get("quantity"));
+            $set("sub_totals", ($product->price + $declinationPrice + $delivery_price - $discount) * $get("quantity"));
         }
-
     }
-    private static function updateBalance(Get $get, Set $set){
+
+    /**
+     * Updates the remaining balance after payment
+     */
+    private static function updateBalance(Get $get, Set $set)
+    {
         $totals = $get("total_amount_order");
         $amount = $get("order_amount");
         $set('balance', number_format($totals - $amount, 2, '.', ''));
@@ -704,16 +708,16 @@ class OrderResource extends Resource
     public static function afterStateUpdated($stateNatif, $state, $get, $set, $livewire = null){
         if($get("product_id") != null){
             $product = Product::find($get('product_id'));
-            if(self::hasDeclinations($product)){
+
+            if(Product::hasDeclinations($product)){
                 $options = [];
                 foreach($product->declinations as $pd){
                     foreach($pd->values as $p){
-                        $attribute = $p->attributeValue->first()->attribute;
+                        $attribute = $p->attribute;
                         self::attributesExist($options, $attribute) ?: $options[$attribute->id][] = $attribute;
                     }
 
                 }
-
                 $valuesId = array_map(function($option) use($state){
                         if(isset($state[$option[0]->name])){
                             return $state[$option[0]->name];
@@ -750,19 +754,10 @@ class OrderResource extends Resource
                 }
             }
         }
-
-
     }
     public static function updateFieldsDeclination($product, $set, $record = null){
-        $options = [];
-        $i=0;
-        foreach($product->declinations as $pd){
-            foreach($pd->values as $p){$i++;
-                $attribute = $p->attributeValue->first()->attribute;
-                self::attributesExist($options, $attribute) ?  $options[$attribute->id][] = $p : $options[$attribute->id][] = $p;
-            }
+        $options = Product::getAttributeToArray($product);
 
-        }
         $fields = [];
         foreach($options as $key => $value){
                 $values = [];
@@ -779,14 +774,14 @@ class OrderResource extends Resource
                     "lazy" => true,
                     "dehydrated"=>false,
                     "required" => true,
-                    "default"=> self::getDeclinationRecord($record, $key),
+                    "default"=> self::getDeclinationRecord($key, $record),
                     'callback' => ["afterStateUpdated" =>[]],
                 ];
         }
 
         $set("declination", $fields);
     }
-    public static function getDeclinationRecord($record = null, $key){
+    public static function getDeclinationRecord($key, $record = null ){
         $result = null;
         if(!is_null($record)){
             $declinationRecord = $record->declination_id;
@@ -795,7 +790,7 @@ class OrderResource extends Resource
 
                 if(count($values) > 0){
                     foreach ($values as $value) {
-                        if($value->attributeValue->first()->attribute->id == $key){
+                        if($value->attribute->id == $key){
                             $result = $value->id;
                         }
                     }
@@ -805,7 +800,11 @@ class OrderResource extends Resource
         return $result;
     }
 
-    public static function couponColumn() : array{
+    /**
+     * Handles coupon application and validation
+     */
+    public static function couponColumn() : array
+    {
         return [
             Forms\Components\Hidden::make('coupon_id'),
             Forms\Components\TextInput::make('coupon')

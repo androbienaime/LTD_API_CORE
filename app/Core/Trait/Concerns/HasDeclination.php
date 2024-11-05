@@ -26,4 +26,22 @@ trait HasDeclination{
 
         return $model->declinations->first()->values;
     }
+
+    public static function getAttributeToArray(\Illuminate\Database\Eloquent\Model $model){
+        if(!self::hasDeclinations($model)){
+            return null;
+        }
+        $options = [];
+
+        foreach($model->declinations as $pd){
+            foreach($pd->values as $value){
+                $attribute = $value->attribute;
+                $options[$attribute->id][] = $value;
+            }
+
+        }
+
+        return $options;
+
+    }
 }

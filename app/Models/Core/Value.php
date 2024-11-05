@@ -19,11 +19,8 @@ class Value extends Model
         "meta_title",
         "indexable"
     ];
-    public function attributeValue() : HasMany{
-        return $this->hasMany(AttributeValue::class);
-    }
 
-    public function attributes() : BelongsTo{
+    public function attribute() : BelongsTo{
         return $this->belongsTo(Attribute::class);
     }
 }
