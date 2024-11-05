@@ -13,25 +13,36 @@ use App\Filament\Resources\Core\ProductResource\RelationManagers\DeclinationProd
 class CreateProduct extends CreateRecord
 {
     protected static string $resource = ProductResource::class;
-
+    protected static string $view = 'filament.resources.pages.create-record';
     protected function mutateFormDataBeforeCreate(array $data) : array{
         unset($data['categories']);
         return $data;
     }
 
-    // protected function getFormActions(): array
-    // {
-    //     return [
-    //         ButtonAction::make('create')
-    //             ->label('Create')
-    //             ->action('create')
-    //             ->extraAttributes(['class' => 'filament-button']),
-            
-    //         ButtonAction::make('save')
-    //             ->label('Save')
-    //             ->action('save')
-    //             ->extraAttributes(['class' => 'filament-button']),
-    //     ];
-    // }
- 
+
+    // Personnaliser les actions
+    protected function getFormActions(): array
+    {
+        return [
+            $this->getCreateFormAction()
+                ->extraAttributes([
+                    'class' => 'bg-blue-600'
+                ]),
+            $this->getCreateAnotherFormAction()
+                ->extraAttributes([
+                    'class' => 'bg-blue-500'
+                ]),
+            $this->getCancelFormAction()
+                ->extraAttributes([
+                    'class' => ''
+                ]),
+        ];
+    }
+//
+//    // Header personnalisé
+//    public function getHeader(): ?\Illuminate\Contracts\View\View
+//    {
+//        return view('filament.resources.product.pages.create-product-page');
+//    }
+
 }
