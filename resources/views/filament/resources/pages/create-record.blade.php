@@ -13,7 +13,7 @@
             <!-- Votre contenu du formulaire ici -->
             {{ $this->form }}
 
-            <div class="py-4">
+            <div>
                 <x-filament-panels::form.actions
                     :actions="$this->getCachedFormActions()"
                     :full-width="$this->hasFullWidthFormActions()"

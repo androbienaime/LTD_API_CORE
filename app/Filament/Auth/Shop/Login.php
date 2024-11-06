@@ -6,7 +6,6 @@ use App\Models\Core\Account;
 use Filament\Pages\Auth\Login as BaseLogin;
 use DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException;
 use Filament\Facades\Filament;
-use Filament\Http\Responses\Auth\Contracts\LoginResponse;
 use Illuminate\Validation\ValidationException;
 
 class Login extends BaseLogin
