@@ -10,9 +10,9 @@ trait HasCommonFieldsTrait
     public function setCommonFields($model){
         if (auth('account')->check()) {
             $account = Account::all()->find(auth("account")->id());
-            if(!is_null(self::findShopByAccount($account))){
+            if(!is_null(Account::findShopByAccount($account))){
                 $model->merchant_id = $account->id;
-                $model->shop_id = self::findShopByAccount($account)->id;
+                $model->shop_id = Account::findShopByAccount($account)->id;
             }
         }
     }

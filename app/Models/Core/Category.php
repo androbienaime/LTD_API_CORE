@@ -2,6 +2,7 @@
 
 namespace App\Models\Core;
 
+use App\Core\Trait\Concerns\HasSlug;
 use App\Core\Trait\Models\AccountGlobalScopeTrait;
 use App\Models\Core\CategoryProduct;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Category extends Model
 {
-    use HasFactory, AccountGlobalScopeTrait;
+    use HasFactory, AccountGlobalScopeTrait, HasSlug;
 
     protected static string $tableName = 'categories';
 

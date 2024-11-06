@@ -2,6 +2,7 @@
 
 namespace App\Models\Core;
 
+use App\Core\Trait\Models\AccountShopTrait;
 use Filament\Panel;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
@@ -24,7 +25,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Account extends Authenticatable implements HasMedia, FilamentUser, HasName, HasAvatar
 {
-    use HasApiTokens, HasFactory, Notifiable, InteractsWithMedia, HasRoles, HasPanelShield;
+    use HasApiTokens, HasFactory, Notifiable, InteractsWithMedia, HasRoles, HasPanelShield,
+        AccountShopTrait;
+
 
     protected $guard = "accounts";
 

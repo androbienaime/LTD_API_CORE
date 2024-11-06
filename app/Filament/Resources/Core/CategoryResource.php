@@ -45,11 +45,7 @@ class CategoryResource extends Resource
                     ->maxLength(255)
                     ->live(onBlur: true)
                     ->afterStateUpdated(function (Get $get, Set $set, ?string $old, ?string $state) {
-                        if (($get('slug') ?? '') !== Str::slug($old)) {
-                            return;
-                        }
-
-                        $set('slug', Str::slug($state));
+                        $set('slug', Category::createUniqueSlug($get("name")));
                     }),
                 Forms\Components\TextInput::make('slug')
                     ->required()

@@ -3,6 +3,7 @@
 namespace App\Models\Core;
 
 use App\Core\Trait\Concerns\HasDeclination;
+use App\Core\Trait\Concerns\HasSlug;
 use App\Core\Trait\Concerns\HasStatus;
 use App\Core\Trait\Models\AccountGlobalScopeTrait;
 use App\Core\Trait\Models\AccountShopTrait;
@@ -44,9 +45,9 @@ class Product extends Model implements HasMedia
         InteractsWithMedia,
         HasTags,
         AccountGlobalScopeTrait,
-        AccountShopTrait,
         HasStatus,
-        HasDeclination;
+        HasDeclination,
+        HasSlug;
 
     protected $guarded;
 
@@ -113,15 +114,6 @@ class Product extends Model implements HasMedia
 
     public function productDiscount() : BelongsTo{
         return $this->belongsTo(ProductDiscount::class);
-    }
-    public static function createUniqueSlug($name){
-        $slug = Str::slug($name);
-        $accountConnected = Account::find(auth("account")->id());
-        $shop = self::findShopByAccount($accountConnected);
-
-        $count = Product::where("slug", 'LIKE', "{$slug}%")->count();
-
-        return $count > 0 ? (string) "{$shop->slug}-{$slug}-{$count}" :$slug;
     }
 
     public function productCover()
