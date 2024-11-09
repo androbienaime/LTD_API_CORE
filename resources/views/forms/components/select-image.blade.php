@@ -1,4 +1,4 @@
-
+@props(["image" => ''])
 <div class="flex rounded-md relative">
     <div class="flex">
         <div class="px-2 py-3">

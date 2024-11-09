@@ -16,11 +16,13 @@ return new class extends Migration
             $table->decimal("order_amount", 16, 5);
             $table->foreignId("user_id")->nullable(true);
             $table->foreignId("customer_id")->nullable(true);
-            $table->foreignId("status_id")->nullable(true);
             $table->foreignId("advance_order_id")->nullable(true);
             $table->decimal("total_amount_order", 16, 5);
             $table->string("reference_order");
             $table->string("secure_key");
+
+            $table->string("state");
+            $table->json("sate_data")->nullable(true);
             $table->timestamps();
         });
     }

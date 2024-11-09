@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Core\OrderResource\Pages;
 
+use App\Core\States\Order\Exception\OrderTransitionException;
 use App\Filament\Resources\Core\OrderResource;
+use App\Models\Core\Order;
 use Carbon\Carbon;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
@@ -23,9 +25,14 @@ class CreateOrder extends CreateRecord
         return $data;
     }
 
-    public function mutateRelationshipDataBeforeCreate(array $data): array{
-        dd($data);
-    }
+//    protected function afterCreate(): void
+//    {
+//        if($this->record->order_amount > 0){
+//            $this->processOrder($this->record);
+//        }
+//    }
+
+
 
 
 

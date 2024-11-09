@@ -15,6 +15,7 @@ trait HasSlug
         $count = (new static)->newQuery()
             ->withoutGlobalScopes()
             ->where("slug", 'LIKE', "{$slug}%")
+            ->orWhere("slug", 'LIKE', "{$shop->slug}-{$slug}%")
             ->count();
 
         if ($count > 0) {

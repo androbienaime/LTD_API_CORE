@@ -141,10 +141,6 @@ class OrderResource extends Resource
                                 ])->columns(2),
 
                         ]),
-                Select::make('status_id')
-                    ->relationship(name :'status', titleAttribute:'name')
-                    ->default(1)
-                    ->required(),
                 Section::make()
                     ->schema([
                         Repeater::make("orderProducts")
@@ -458,6 +454,9 @@ class OrderResource extends Resource
                       Forms\Components\TextInput::make('order_amount')
                           ->label(__("Payment"))
                           ->required()
+                          ->default(0)
+                          ->minValue(0)
+                          ->lte("total_amount_order")
                           ->live(onBlur: true)
                           ->afterStateUpdated(function (Get $get, Set $set) {
                               self::updateBalance($get, $set);
@@ -510,8 +509,7 @@ class OrderResource extends Resource
                     ->label(__("Payment"))
                     ->money("USD")
                     ->sortable(),
-                Tables\Columns\SelectColumn::make('status.name')
-                    ->inverseRelationship(name:'orderStatus')
+                Tables\Columns\SelectColumn::make('state')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('user_id')
                     ->numeric()
@@ -622,10 +620,10 @@ class OrderResource extends Resource
         // Calculate product totals
         $selectedProducts = collect($get('orderProducts'))
             ->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
-        
+
         // Add declination prices
         $declinationPricesSum = array_sum(self::$declinationPrices ?? []);
-        
+
         // Get delivery costs
         $costs = $get("delivery.costs");
 

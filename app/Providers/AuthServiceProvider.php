@@ -22,7 +22,6 @@ use App\Models\Location\City;
 use App\Models\Core\Attribute;
 use App\Models\Location\State;
 use App\Models\Core\Roles\Role;
-use App\Models\Core\OrderStatus;
 use App\Models\Location\Country;
 use App\Policies\Core\ShopPolicy;
 use App\Models\Core\PaymentMethod;
@@ -43,7 +42,6 @@ use App\Policies\Core\TrackingPolicy;
 use App\Policies\Location\CityPolicy;
 use App\Policies\Core\AttributePolicy;
 use App\Policies\Location\StatePolicy;
-use App\Policies\Core\OrderStatusPolicy;
 use App\Policies\Location\CountryPolicy;
 use App\Policies\Core\PaymentMethodPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
@@ -58,7 +56,6 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         Account::class => AccountPolicy::class,
         Carrier::class => CarrierPolicy::class,
-        OrderStatus::class => OrderStatusPolicy::class,
         Currency::class => CurrencyPolicy::class,
         Customer::class => CustomerPolicy::class,
         Delivery::class => DeliveryPolicy::class,
