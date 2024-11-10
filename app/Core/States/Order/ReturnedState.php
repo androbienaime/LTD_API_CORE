@@ -7,14 +7,17 @@ use App\Models\Core\Order;
 
 class ReturnedState extends OrderState
 {
-    private string $returnReason;
-    private \DateTime $returnedAt;
-
-    public function __construct(Order $order, string $returnReason, \DateTime $returnedAt = null){
+    public function __construct(Order $order){
         parent::__construct($order);
+    }
 
-        $this->returnReason = $returnReason;
-        $this->returnedAt = $returnedAt;
+    public function label() : string
+    {
+        return "Returned";
+    }
+
+    public function color() : string{
+        return "gray";
     }
 
 }

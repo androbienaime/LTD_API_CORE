@@ -21,7 +21,8 @@ class CancelOrderTransition extends Transition
     {
         event(new OrderCancelled($this->order, $this->reason));
 
-        $this->order->state = new CancelledState($this->order, $this->reason);
+        $this->order->updateStateData(['return_reason' => $this->reason, "cancelledAt" => now()]);
+        $this->order->state = new CancelledState($this->order);
         $this->order->save();
 
         return $this->order;

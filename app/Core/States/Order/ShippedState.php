@@ -11,12 +11,24 @@ class ShippedState extends OrderState
 
 
 
-    public function __construct(Order $order, string $trackingNumber){
-        $this->trackingNumber = $trackingNumber;
+    public function __construct(Order $order){
         parent::__construct($order);
     }
 
     public function getTrackingNumber(): ?string{
         return $this->trackingNumber;
+    }
+
+    public function setTrackingNumber(string $trackingNumber): void{
+        $this->trackingNumber = $trackingNumber;
+    }
+
+    public function label() : string{
+        return "Shipped";
+    }
+
+    public function color() : string
+    {
+        return "primary";
     }
 }

@@ -11,4 +11,12 @@ class PendingState extends OrderState implements OrderStateInterface
     {
         return true;
     }
+
+    public function label() : string{
+        return "Pending";
+    }
+
+    public function color() : string{
+        return "warning";
+    }
 }

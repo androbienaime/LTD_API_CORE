@@ -12,4 +12,12 @@ class ProcessingState extends OrderState implements Contracts\OrderStateInterfac
     {
         return true;
     }
+
+    public function label() : string{
+        return "Processing";
+    }
+
+    public function color() : string{
+        return "info";
+    }
 }

@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string("secure_key");
 
             $table->string("state");
-            $table->json("sate_data")->nullable(true);
+            $table->json("state_data")->nullable(true);
             $table->timestamps();
         });
     }

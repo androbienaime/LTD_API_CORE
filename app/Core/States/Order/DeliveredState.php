@@ -6,11 +6,13 @@ use App\Core\States\Order\OrderState;
 
 class DeliveredState extends OrderState
 {
-    private \DateTime $deliveredAt;
-
-    public function __construct(\DateTime $deliveredAt){
-        $this->deliveredAt = $deliveredAt;
+    public function label() : string
+    {
+        return "Delivered";
     }
 
-
+    public function color() : string
+    {
+        return "success";
+    }
 }

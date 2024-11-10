@@ -2,6 +2,12 @@
 
 namespace App\Filament\Resources\Core;
 
+use App\Core\States\Order\CancelledState;
+use App\Core\States\Order\DeliveredState;
+use App\Core\States\Order\PendingState;
+use App\Core\States\Order\ProcessingState;
+use App\Core\States\Order\ReturnedState;
+use App\Core\States\Order\ShippedState;
 use Filament\Forms;
 use Filament\Tables;
 use Filament\Forms\Get;
@@ -509,8 +515,10 @@ class OrderResource extends Resource
                     ->label(__("Payment"))
                     ->money("USD")
                     ->sortable(),
-                Tables\Columns\SelectColumn::make('state')
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('state')
+                    ->formatStateUsing(fn (Order $record) => $record->state->label())
+                    ->badge()
+                    ->color(fn (Order $record): string => $record->state->color()),
                 Tables\Columns\TextColumn::make('user_id')
                     ->numeric()
                     ->sortable()
@@ -553,6 +561,82 @@ class OrderResource extends Resource
                     ->iconButton(),
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('changerStatut')
+                    ->label('Changer le statut')
+                    ->color('primary')
+                    ->icon('heroicon-o-arrow-path')
+                    ->iconButton()
+                    ->form([
+                        Select::make('state')
+                            ->label('Nouveau statut')
+                            ->options(function(Order $record){
+                                return collect($record->getAvailableStates())
+                                        ->map(fn (string $state) => [
+                                            'value' => $state,
+                                            'label' => (new $state($record))->label()
+                                        ])
+                                        ->pluck('label', 'value')
+                                        ->toArray();
+                            })
+                            ->default(fn (Order $record): array => [
+                                'state' => get_class($record->state)
+                            ])
+                            ->live()
+                            ->required(),
+                            Forms\Components\Textarea::make("reason")
+                            ->hidden(function (Get $get){
+                                $path = "App\Core\States\Order";
+                                $hasReason = [$path."\CancelledState", $path."\ReturnedState"];
+                                    if (in_array($get("state"), $hasReason)) {
+                                        return false;
+                                    }
+                                return true;
+                            }),
+                            TextInput::make("tracking_number")
+                                    ->hidden(fn(Get $get) => $get("state") != "App\Core\States\Order\ShippedState")
+                    ])
+                    ->action(function (Order $record, $data) {
+                        try {
+                            $newState = $data['state'];
+                            if ($record->state->canTransitionTo($newState)) {
+                                if ($newState === PendingState::class) {
+                                    $record->state->transitionTo(new PendingState($record));
+                                } elseif ($newState === ProcessingState::class) {
+                                    $record->process()->save();
+                                } elseif ($newState === ShippedState::class) {
+                                    $record->ship($data["tracking_number"]);
+                                } elseif ($newState === DeliveredState::class) {
+                                    $record->state->transitionTo(new DeliveredState($record));
+                                } elseif ($newState === ReturnedState::class) {
+                                    $record->return($data["reason"]);
+                                } elseif ($newState === CancelledState::class) {
+                                    $record->cancel($data["reason"]);
+                                } else {
+                                    return;
+                                }
+
+                                Notification::make()
+                                    ->success()
+                                    ->title('État mis à jour')
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Transition non autorisée')
+                                    ->send();
+                            }
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Erreur')
+                                ->body($e->getMessage())
+                                ->send();
+                        }
+                      })
+                    ->requiresConfirmation()
+                    ->modalHeading('Changer le statut')
+                    ->modalSubheading('Sélectionnez le nouveau statut pour cet enregistrement.')
+                    ->modalButton('Enregistrer')
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

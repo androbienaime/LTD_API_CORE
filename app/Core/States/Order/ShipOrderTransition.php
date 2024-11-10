@@ -17,7 +17,7 @@ class ShipOrderTransition extends Transition
      * @param Order $order
      * @param string $trackingNumber
      */
-    public function __construct(Order $order, string $trackingNumber)
+    public function __construct(Order $order, ?string $trackingNumber)
     {
         $this->order = $order;
         $this->trackingNumber = $trackingNumber;
@@ -30,7 +30,9 @@ class ShipOrderTransition extends Transition
         }
 
         event(new ShippedOrder($this->order, $this->trackingNumber));
-        $this->order->state = new ShippedState($this->order, $this->trackingNumber);
+
+        $this->order->updateStateData(["tracking_number" => $this->trackingNumber]);
+        $this->order->state = new ShippedState($this->order);
         $this->order->save();
 
         return $this->order;

@@ -2,6 +2,7 @@
 
 namespace App\Models\Core;
 
+use App\Core\States\Order\CancelledState;
 use App\Core\States\Order\CancelOrderTransition;
 use App\Core\States\Order\OrderState;
 use App\Core\States\Order\ProcessOrderTransition;
@@ -18,6 +19,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Spatie\ModelStates\HasStates;
+use Spatie\ModelStates\State;
+use Spatie\ModelStates\Transition;
 
 class Order extends Model
 {
@@ -28,6 +31,7 @@ class Order extends Model
 
     protected $casts = [
         "state" => OrderState::class,
+        "state_data" => 'array',
     ];
 
     public function order_advance() : BelongsTo{
@@ -66,18 +70,39 @@ class Order extends Model
     }
 
     public function ship(string $trackingNumber) : self{
-        $this->state->transition(ShipOrderTransition::class, $trackingNumber);
+        $this->state->transition(new ShipOrderTransition($this, $trackingNumber));
         return $this;
     }
 
     public function cancel(string $reason) : self{
-        $this->state->transition(CancelOrderTransition::class, $reason);
+        $this->state->transition(new CancelOrderTransition($this, $reason));
         return $this;
     }
 
     public function return(string $reason) : self{
-        $this->state->transition(ReturnOrderTransition::class, $reason);
+        $this->state->transition(new ReturnOrderTransition($this, $reason, now()));
         return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getAvailableStates(): array
+    {
+        $currentState = $this->state;
+        return self::getStates()["state"]
+            ->filter(fn ($stateClass) =>  $currentState->canTransitionTo($stateClass))
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Méthode pour mettre à jour les données d'état dans le champ JSON
+     */
+    public function updateStateData(array $data): void
+    {
+        $this->state_data = array_merge($this->state_data ?? [], $data);
+        $this->save();
     }
 
 }
