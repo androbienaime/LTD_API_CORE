@@ -48,7 +48,8 @@ class OrderPolicy
      */
     public function delete(Account|User $account, Order $order): bool
     {
-        return $account->can('delete_core::order');
+//        return $account->can('delete_core::order');
+        return false;
     }
 
     /**
@@ -56,7 +57,8 @@ class OrderPolicy
      */
     public function deleteAny(Account|User $account): bool
     {
-        return $account->can('delete_any_core::order');
+//        return $account->can('delete_any_core::order');
+        return false;
     }
 
     /**
@@ -64,7 +66,8 @@ class OrderPolicy
      */
     public function forceDelete(Account|User $account, Order $order): bool
     {
-        return $account->can('force_delete_core::order');
+//        return $account->can('force_delete_core::order');
+        return false;
     }
 
     /**
@@ -72,8 +75,10 @@ class OrderPolicy
      */
     public function forceDeleteAny(Account|User $account): bool
     {
-        return $account->can('force_delete_any_core::order');
+//        return $account->can('force_delete_any_core::order');
+        return false;
     }
+
 
     /**
      * Determine whether the account can restore.
