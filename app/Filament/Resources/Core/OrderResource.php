@@ -8,6 +8,7 @@ use App\Core\States\Order\PendingState;
 use App\Core\States\Order\ProcessingState;
 use App\Core\States\Order\ReturnedState;
 use App\Core\States\Order\ShippedState;
+use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Tables;
 use Filament\Forms\Get;
@@ -582,7 +583,8 @@ class OrderResource extends Resource
                                 'state' => get_class($record->state)
                             ])
                             ->live()
-                            ->required(),
+                            ->required()
+                            ->disabled(fn (Order $record): bool => !auth(Filament::getAuthGuard())->user()->can('update', $record)),
                             Forms\Components\Textarea::make("reason")
                             ->hidden(function (Get $get){
                                 $path = "App\Core\States\Order";
