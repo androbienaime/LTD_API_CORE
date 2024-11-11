@@ -16,7 +16,9 @@ use Illuminate\Support\Facades\Route;
 */
 $middleware = [
     'auth:web',
-    'web'
+    'web',
+    'account',
+    'auth:account'
 ];
 
 Route::get('/', function () {
@@ -25,7 +27,7 @@ Route::get('/', function () {
 
 Route::middleware($middleware)->group(function (){
     Route::get('invoice/{order}', [InvoiceController::class, 'show'])->name('invoice.show');
-    
+
     // Route::get('orders/{model}/print', function (Order $model){
     //      return view('orders.print', compact('model'));
     // })->name('order.print');
