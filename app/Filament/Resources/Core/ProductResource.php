@@ -2,11 +2,15 @@
 
 namespace App\Filament\Resources\Core;
 
+use App\Core\ResourceModules\HasResourceStatus;
 use App\Core\ResourceModules\Product\ProductDeclinations;
 use App\Core\ResourceModules\Product\ProductDetails;
 use App\Core\ResourceModules\Product\ProductSeo;
 use App\Core\ResourceModules\Product\ProductShippings;
 use App\Core\ResourceModules\Product\ProductStockAndPrices;
+use App\Core\States\GeneralStatus\ActiveState;
+use App\Core\States\GeneralStatus\InactiveState;
+use Filament\Forms\Components\Select;
 use Filament\Tables;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -32,7 +36,7 @@ use App\Filament\Resources\Core\ProductResource\RelationManagers\DeliveryProduct
 
 class ProductResource extends Resource
 {
-    use FillTableToManyTrait;
+    use FillTableToManyTrait, HasResourceStatus;
     protected static ?string $model = Product::class;
 
     // protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
@@ -76,7 +80,7 @@ class ProductResource extends Resource
                             ])
                             ->hiddenOn(DeliveryProductRelationManager::class)
                             ->icon('heroicon-o-cursor-arrow-ripple'),
-                            
+
                             Tab::make(__("Stock & Price"))
                             ->schema([
                                 ProductStockAndPrices::form()
@@ -85,17 +89,17 @@ class ProductResource extends Resource
                             Tab::make(__("Shipping"))
                             ->schema([
                                ProductShippings::form()
-                                                        
+
                             ])
                             ->icon("heroicon-o-truck"),
                             Tab::make("SEO")
                                 ->Icon("heroicon-o-magnifying-glass")
                                 ->schema([
                                     ProductSeo::form()
-                                       
+
                                 ])
                         ])->columnSpan("full")
-                
+
                 ]);
     }
 
@@ -103,7 +107,7 @@ class ProductResource extends Resource
     {
         return $table
             ->columns([
-                
+
                 Tables\Columns\TextColumn::make('name')
                     ->label(__("Name of product"))
                     ->description(fn(Product $product) => new HtmlString(
@@ -118,22 +122,22 @@ class ProductResource extends Resource
                     ->tooltip(function (TextColumn $column, Product $product): ?string {
                         $state = $column->getState();
                         $message = '';
-                    
+
                         // Check if the state exceeds the character limit
                         if (strlen($state) > $column->getCharacterLimit()) {
                             $message = $state;
                         }
-                    
+
                         // Check if the product description exceeds the length limit
                         if (strlen($product->description) > 40) {
                             $message .= "\n\nDescription:\n" . strip_tags(Str::limit($product->description, 255));
                         }
-                    
+
                         // Return null if no message to display or if both conditions are satisfied
                         return $message === '' ? null : $message;
                     }),
-                    
-                    
+
+
                 SpatieMediaLibraryImageColumn::make('product_image')
                     ->label(__("Image"))
                     ->circular()
@@ -141,7 +145,7 @@ class ProductResource extends Resource
                     ->limit(4)
                     ->limitedRemainingText()
                     ->conversion('thumb'),
-              
+
                 Tables\Columns\TextColumn::make('slug')
                     ->label(__("Preview"))
                     ->formatStateUsing(static function($state){
@@ -150,7 +154,7 @@ class ProductResource extends Resource
                     ->url(fn($record) => $record->slug)
                     ->openUrlInNewTab()
                     ->icon("heroicon-m-arrow-top-right-on-square")
-                    ->iconPosition(IconPosition::After) 
+                    ->iconPosition(IconPosition::After)
                     ->color("primary")
                     ->tooltip(fn(Model $record) => $record->slug)
                     ->searchable(),
@@ -159,11 +163,11 @@ class ProductResource extends Resource
                     ->description(fn(Product $product) => '(Price:'.number_format($product->price, 2). ')-Discount:' . number_format($product->productDiscount ? $product->productDiscount->discount: 0))
                     ->money()
                     ->sortable(),
-                
+
                 Tables\Columns\TextColumn::make('stock_quantity')
                     ->label(__("Stock"))
                     ->formatStateUsing(static function (TextColumn $column, $state, Product $product)  {
-                        $state = ($state == 0) ?: __("Out stock"); 
+                        $state = ($state == 0) ?: __("Out stock");
                         return $product->has_unlimited_stock ? "Unlimited": $state;
                     })
                     ->badge()
@@ -211,9 +215,8 @@ class ProductResource extends Resource
                 ToggleColumn::make('available_market')
                     ->label(__("Available Market"))
                     ->toggleable(isToggledHiddenByDefault: true),
-                ToggleColumn::make('status')
-                    ->label("status")
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    self::TablesStatus()
+                    ->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('created_at')
                     ->since()
                     ->dateTimeTooltip()
@@ -248,6 +251,7 @@ class ProductResource extends Resource
             ])
             ->actions([
                 ActionGroup::make([
+                    self::ActionStatus(),
                     Tables\Actions\ViewAction::make(),
                     Tables\Actions\EditAction::make(),
                     Tables\Actions\DeleteAction::make(),

@@ -2,7 +2,9 @@
 
 namespace App\Models\Core;
 
+use App\Core\States\GeneralStatus\GeneralStatusState;
 use App\Core\Trait\Concerns\HasDeclination;
+use App\Core\Trait\Concerns\HasGeneralStatus;
 use App\Core\Trait\Concerns\HasSlug;
 use App\Core\Trait\Concerns\HasStatus;
 use App\Core\Trait\Models\AccountGlobalScopeTrait;
@@ -45,11 +47,16 @@ class Product extends Model implements HasMedia
         InteractsWithMedia,
         HasTags,
         AccountGlobalScopeTrait,
-        HasStatus,
+        HasGeneralStatus,
         HasDeclination,
         HasSlug;
 
     protected $guarded;
+
+    protected $casts = [
+        "status" => GeneralStatusState::class,
+        "status_data" => 'array'
+    ];
 
     protected static string $tableName = 'products';
 

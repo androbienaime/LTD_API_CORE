@@ -2,6 +2,7 @@
 
 namespace Database\Factories\Core;
 
+use App\Core\States\GeneralStatus\ActiveState;
 use App\Models\Core\Account;
 use App\Models\Core\Brand;
 use App\Models\Core\Category;

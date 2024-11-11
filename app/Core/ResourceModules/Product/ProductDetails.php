@@ -2,6 +2,8 @@
 
 namespace App\Core\ResourceModules\Product;
 
+use App\Core\States\GeneralStatus\ActiveState;
+use App\Core\States\GeneralStatus\InactiveState;
 use App\Models\Core\Brand;
 use App\Models\Core\Product;
 use App\Models\Core\Attribute;
@@ -63,8 +65,11 @@ class ProductDetails
                             ->required(),
                         Toggle::make('is_available_market')
                             ->required(),
-                        Toggle::make('status')
-                            ->required(),
+                        Select::make("status")
+                                ->options([
+                                    ActiveState::class => "Active",
+                                    InactiveState::class => "Desactive"
+                                ])->default(ActiveState::class),
                         Toggle::make('is_downloaddable')
                             ->label(__("Downloaddable"))
                             ->required(),

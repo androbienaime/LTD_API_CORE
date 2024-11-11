@@ -40,7 +40,7 @@ return new class extends Migration
             $table->boolean("is_downloadable")->default(false);
             $table->boolean("is_available_market")->default(false);
             $table->boolean("has_declination")->default(false);
-            $table->string("status")->default("active"); // [active, draft, inactive, suspended, bloked]
+            $table->string("status"); // [active, draft, inactive, suspended, bloked]
             $table->boolean("is_downloaddable")->default(false);
             $table->boolean("is_trend")->default(true);
             $table->boolean('is_in_stock')->default(true);
@@ -50,7 +50,7 @@ return new class extends Migration
             $table->boolean("has_max_cart")->default(0)->nullable();
             $table->boolean("has_stock_alert")->default(0)->nullable();
 
-
+            $table->json("status_data")->nullable();
             $table->foreignId("shop_id")->nullable(true)->constrained();
             $table->timestamps();
         });
