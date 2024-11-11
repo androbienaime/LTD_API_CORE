@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\ManageOrder;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\Widgets;

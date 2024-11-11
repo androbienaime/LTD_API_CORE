@@ -69,17 +69,17 @@ class Order extends Model
         }
     }
 
-    public function ship(string $trackingNumber) : self{
+    public function ship(string $trackingNumber = null) : self{
         $this->state->transition(new ShipOrderTransition($this, $trackingNumber));
         return $this;
     }
 
-    public function cancel(string $reason) : self{
+    public function cancel(string $reason = null) : self{
         $this->state->transition(new CancelOrderTransition($this, $reason));
         return $this;
     }
 
-    public function return(string $reason) : self{
+    public function return(string $reason = null) : self{
         $this->state->transition(new ReturnOrderTransition($this, $reason, now()));
         return $this;
     }
