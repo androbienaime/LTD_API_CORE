@@ -17,7 +17,7 @@ class ListCurrencies extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
-            Action::make('importCurrencies')
+            Action::make('Update Currencies')
                 ->label('Import Currencies')
                 ->action(function () {
                     $importService = app(CurrencyServices::class);
