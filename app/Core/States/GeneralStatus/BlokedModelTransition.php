@@ -9,7 +9,7 @@ use Spatie\ModelStates\Transition;
 class BlokedModelTransition extends Transition
 {
     protected Model $model;
-    protected string $reason;
+    protected ?string $reason;
     protected \DateTime $date_blocked;
     public function __construct(Model $model, ?string $reason = null, ?\DateTime $date_blocked = null){
         $this->model = $model;

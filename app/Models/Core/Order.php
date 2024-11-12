@@ -4,10 +4,15 @@ namespace App\Models\Core;
 
 use App\Core\States\Order\CancelledState;
 use App\Core\States\Order\CancelOrderTransition;
+use App\Core\States\Order\DeliveredState;
 use App\Core\States\Order\OrderState;
+use App\Core\States\Order\PendingState;
+use App\Core\States\Order\ProcessingState;
 use App\Core\States\Order\ProcessOrderTransition;
+use App\Core\States\Order\ReturnedState;
 use App\Core\States\Order\ReturnOrderTransition;
 use App\Core\States\Order\ShipOrderTransition;
+use App\Core\States\Order\ShippedState;
 use App\Core\Trait\Models\AccountGlobalScopeTrait;
 use App\Models\Core\Customer;
 use App\Models\Core\OrderAdvance;
@@ -103,6 +108,37 @@ class Order extends Model
     {
         $this->state_data = array_merge($this->state_data ?? [], $data);
         $this->save();
+    }
+
+
+    public function changeStatus(string $newState, ?string $reason = null, ?string $trackingNumber = null): void
+    {
+        if ($this->state->canTransitionTo($newState)) {
+            switch ($newState) {
+                case PendingState::class:
+                        $this->state->transitionTo(new PendingState($this));
+                    break;
+                case ProcessingState::class:
+                        $this->process()->save();
+                    break;
+                case ShippedState::class:
+                        $this->ship($trackingNumber);
+                    break;
+                case DeliveredState::class:
+                        $this->state->transitionTo(new DeliveredState($this));
+                    break;
+                case ReturnedState::class:
+                    $this->return($reason);
+                    break;
+                case CancelledState::class:
+                    $this->cancel($reason);
+                    break;
+                default:
+                    throw new \Exception("État non supporté");
+            }
+        } else {
+            throw new \Exception("Transition non autorisée");
+        }
     }
 
 }

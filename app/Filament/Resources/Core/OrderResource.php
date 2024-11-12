@@ -599,34 +599,14 @@ class OrderResource extends Resource
                     ])
                     ->action(function (Order $record, $data) {
                         try {
-                            $newState = $data['state'];
-                            if ($record->state->canTransitionTo($newState)) {
-                                if ($newState === PendingState::class) {
-                                    $record->state->transitionTo(new PendingState($record));
-                                } elseif ($newState === ProcessingState::class) {
-                                    $record->process()->save();
-                                } elseif ($newState === ShippedState::class) {
-                                    $record->ship($data["tracking_number"]);
-                                } elseif ($newState === DeliveredState::class) {
-                                    $record->state->transitionTo(new DeliveredState($record));
-                                } elseif ($newState === ReturnedState::class) {
-                                    $record->return($data["reason"]);
-                                } elseif ($newState === CancelledState::class) {
-                                    $record->cancel($data["reason"]);
-                                } else {
-                                    return;
-                                }
+                            // Déplacement de la logique de changement d'état dans le modèle
+                            $record->changeStatus($data['state'], $data['reason'] ?? null, trackingNumber : $data["tracking_number"] ?? null);
 
-                                Notification::make()
-                                    ->success()
-                                    ->title('État mis à jour')
-                                    ->send();
-                            } else {
-                                Notification::make()
-                                    ->danger()
-                                    ->title('Transition non autorisée')
-                                    ->send();
-                            }
+                            Notification::make()
+                                ->success()
+                                ->title('État mis à jour')
+                                ->send();
+
                         } catch (\Exception $e) {
                             Notification::make()
                                 ->danger()
