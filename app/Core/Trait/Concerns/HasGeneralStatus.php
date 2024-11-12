@@ -10,11 +10,13 @@ use App\Core\States\GeneralStatus\InactiveModelTransition;
 use App\Core\States\GeneralStatus\InactiveState;
 use App\Core\States\GeneralStatus\SuspendedModelTransition;
 use App\Core\States\GeneralStatus\SuspendedState;
+use Filament\Facades\Filament;
 use Spatie\ModelStates\HasStates;
 
 trait HasGeneralStatus
 {
     use HasStates;
+//        HasGuardSpecificStatus;
     public function activated(){
         $this->status->transition(new ActiveModelTransition($this));
         return $this;
@@ -47,19 +49,29 @@ trait HasGeneralStatus
         return false;
     }
 
-    /**
-     * @return array
-     */
     public function getAvailableStatus(): array
     {
         $currentState = $this->status;
-        return self::getStates()["status"]
-            ->filter(fn ($stateClass) =>  $currentState->canTransitionTo($stateClass))
+
+        // Récupère les états autorisés pour le guard actuel
+        $allowedStates = static::getAllowedStatesForCurrentGuard();
+
+        // Filtre les états autorisés selon les transitions possibles depuis l'état actuel
+        return collect($allowedStates)
+            ->filter(function ($stateClass) use ($currentState) {
+                // Règle supplémentaire : empêcher la transition de 'bloqué' à 'actif' pour le guard 'account'
+                if (Filament::getAuthGuard() === 'account' && $currentState instanceof BlockedState && $stateClass === ActiveState::class) {
+                    return false;
+                }
+                // Vérifie les transitions possibles pour les autres cas
+                return $currentState->canTransitionTo($stateClass);
+            })
             ->values()
             ->toArray();
     }
 
-    public function changeStatus(string $newState, ?string $reason = null): void
+
+        public function changeStatus(string $newState, ?string $reason = null): void
     {
         if ($this->status->canTransitionTo($newState)) {
             switch ($newState) {
@@ -82,4 +94,18 @@ trait HasGeneralStatus
             throw new \Exception("Transition non autorisée");
         }
     }
+
+    protected static function getAllowedStatesForCurrentGuard(): array
+    {
+        $guard = Filament::getAuthGuard();
+
+        return match($guard) {
+            'account' => [ActiveState::class, InactiveState::class],
+            'web' => [ActiveState::class, InactiveState::class, BlockedState::class, SuspendedState::class],
+            'api' => [ActiveState::class, InactiveState::class, BlockedState::class],
+            default => []
+        };
+    }
+
+
 }
