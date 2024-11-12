@@ -30,7 +30,7 @@ class CurrencyResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('currency')
+                Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('symbol')
@@ -41,7 +41,10 @@ class CurrencyResource extends Resource
                 Forms\Components\TextInput::make('exchange_rate')
                     ->required()
                     ->numeric(),
-                Forms\Components\Toggle::make('status')
+                Forms\Components\Toggle::make('is_active')
+                    ->onColor("success")
+                    ->offColor("danger")
+                    ->default(true)
                     ->required(),
             ]);
     }
@@ -50,7 +53,7 @@ class CurrencyResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('currency')
+                Tables\Columns\TextColumn::make('name')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('symbol')
                     ->searchable(),
@@ -59,8 +62,9 @@ class CurrencyResource extends Resource
                 Tables\Columns\TextColumn::make('exchange_rate')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\IconColumn::make('status')
-                    ->boolean(),
+                Tables\Columns\ToggleColumn::make('is_active')
+                    ->onColor("success")
+                    ->offColor("danger"),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -81,7 +85,7 @@ class CurrencyResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])->defaultSort("updated_at", "desc");
     }
 
     public static function getRelations(): array
@@ -95,9 +99,8 @@ class CurrencyResource extends Resource
     {
         return [
             'index' => Pages\ListCurrencies::route('/'),
-            'create' => Pages\CreateCurrency::route('/create'),
             'view' => Pages\ViewCurrency::route('/{record}'),
-            'edit' => Pages\EditCurrency::route('/{record}/edit'),
+//            'edit' => Pages\EditCurrency::route('/{record}/edit'),
         ];
     }
 }

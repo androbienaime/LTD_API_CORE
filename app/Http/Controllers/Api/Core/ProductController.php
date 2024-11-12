@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Core;
 
+use App\Services\CurrencyServices;
 use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
 use App\Models\Core\Product;
@@ -27,7 +28,7 @@ class ProductController extends Controller
                     'images' => $product->getMedia()->map(function($media){
                         // return $media->id."/".$media->file_name;
                         return $this->getRelativePath($media->getUrl());
-                    })
+                    }),
                 ];
         }));
     }

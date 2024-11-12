@@ -31,7 +31,7 @@ class ProductFactory extends Factory
             "description" => $this->faker->text(),
             "sku" => $this->faker->unique()->randomNumber(),
             "product_type" => $this->faker->randomElement(["product", "service", "digital"]),
-            "currency_id" => Currency::factory(),
+            "currency_id" => Currency::all()->first()->id,
             "shop_id" => Shop::factory(),
             "merchant_id" => Account::factory(),
 

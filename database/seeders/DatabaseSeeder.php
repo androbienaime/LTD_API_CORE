@@ -23,5 +23,11 @@ class DatabaseSeeder extends Seeder
         $this->call(StateSeeder::class);
         $this->call(CitySeeder::class);
         $this->call(AccountRoleSeeder::class);
+        $this->call(CurrencySeeder::class);
+    }
+
+    public function currencies(): array
+    {
+
     }
 }
