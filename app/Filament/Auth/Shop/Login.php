@@ -56,6 +56,12 @@ class Login extends BaseLogin
             ]);
         }
 
+        if(is_null(Account::findShopByAccount($user))){
+            throw ValidationException::withMessages([
+                'data.email' => __("you are not associated with any shop, consult this address https://xxx.com to see if you are eligible to create a shop."),
+            ]);
+        }
+
         if (! Filament::auth()->attempt($this->getCredentialsFromFormData($data), $data['remember'] ?? false)) {
             $this->throwFailureValidationException();
         }
