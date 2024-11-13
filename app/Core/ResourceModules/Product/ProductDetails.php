@@ -5,6 +5,7 @@ namespace App\Core\ResourceModules\Product;
 use App\Core\States\GeneralStatus\ActiveState;
 use App\Core\States\GeneralStatus\InactiveState;
 use App\Models\Core\Brand;
+use App\Models\Core\Currency;
 use App\Models\Core\Product;
 use App\Models\Core\Attribute;
 use Filament\Forms\Components\Grid;
@@ -19,6 +20,7 @@ use Filament\Forms\Components\RichEditor;
 use CodeWithDennis\FilamentSelectTree\SelectTree;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Icetalker\FilamentTableRepeater\Forms\Components\TableRepeater;
+use Illuminate\Database\Eloquent\Builder;
 
 class ProductDetails
 {
@@ -85,7 +87,8 @@ class ProductDetails
                             ->required()
                             ->minValue(0)
                             ->numeric()
-                            ->prefix('$')
+                            ->reactive()
+                            ->prefix(fn(callable $get) => $get("prefix_field") ?: Currency::where("id", $get("currency_id"))->first()->symbol)
                             ->columnSpan("full"),
                     TextInput::make('sku')
                         ->default(uniqid())
@@ -96,8 +99,12 @@ class ProductDetails
                             ->schema([
                                 Select::make('currency_id')
                                     ->label(__("Currency"))
-                                    ->relationship("currency", "currency")
+                                    ->relationship("currency", "iso_code", modifyQueryUsing: fn(Builder $query) => $query->where("is_active", true))
                                     ->default(1)
+                                    ->afterStateUpdated(function(callable $set, callable $get) {
+                                        $set('prefix_field', Currency::where("id", $get("currency_id"))->first()->symbol);
+                                    })
+                                    ->reactive()
                                     ->required(),
 
                                     Select::make('product_type')

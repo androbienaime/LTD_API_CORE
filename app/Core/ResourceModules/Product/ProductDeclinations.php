@@ -2,6 +2,7 @@
 
 namespace App\Core\ResourceModules\Product;
 
+use App\Models\Core\Currency;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use App\Models\Core\Value;
@@ -53,11 +54,13 @@ class ProductDeclinations
                                 //     $record->declinationValues()->attach($state);
                                 // })
                                 ,
-                            TextInput::make("price")
-                                ->minValue(0)
-                                ->default(0)
-                                ->required()
-                                ->numeric(),
+                        TextInput::make('price')
+                            ->required()
+                            ->minValue(0)
+                            ->numeric()
+                            ->reactive()
+                            ->prefix(fn(callable $get) => $get("prefix_field") ?: Currency::where("id", $get("../../currency_id"))->first()->symbol)
+                            ->columnSpan("full"),
                             TextInput::make("quantity")
                                 ->minValue(1)
                                 ->default(1)

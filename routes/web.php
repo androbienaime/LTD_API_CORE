@@ -15,10 +15,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 $middleware = [
-    'auth:web',
+    'multi.guard',
     'web',
-    'account',
-    'auth:account'
 ];
 
 Route::get('/', function () {
