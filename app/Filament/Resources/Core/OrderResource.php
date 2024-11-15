@@ -2,12 +2,10 @@
 
 namespace App\Filament\Resources\Core;
 
-use App\Core\States\Order\CancelledState;
-use App\Core\States\Order\DeliveredState;
-use App\Core\States\Order\PendingState;
-use App\Core\States\Order\ProcessingState;
-use App\Core\States\Order\ReturnedState;
-use App\Core\States\Order\ShippedState;
+use Filament\Forms\Components\Actions\Action;
+use Filament\Support\Exceptions\Halt;
+use Illuminate\Support\Facades\Session;
+use App\Models\Core\Currency;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Tables;
@@ -57,6 +55,9 @@ class OrderResource extends Resource
 
     protected static ?string $model = Order::class;
     protected static $values = [];
+    protected static int $currency = 1;
+
+
     public static $declinationPrices = []; // Stores prices for product variations
 
     // protected static ?string $navigationIcon = 'heroicon-o-shopping-bag';
@@ -84,70 +85,103 @@ class OrderResource extends Resource
     }
 
     /**
+     * @return void
+     */
+    protected static function configureResource(): void
+    {
+        // Vérifiez si une devise est sélectionnée
+        if (session()->has('currency')) {
+            // Faites quelque chose avec la devise si nécessaire
+            static::$currency = session('currency');
+        }
+
+        // Réinitialiser l'indicateur de modal pour éviter sa réouverture
+        session()->forget('show_modal_currency');
+    }
+
+    /**
      * Defines the form structure for creating/editing orders
      */
     public static function form(Form $form): Form
     {
+        self::configureResource();
         return $form
             ->schema([
-                Select::make('customer_id')
-                        ->relationship(
-                            name:'customer',
-                                modifyQueryUsing: fn (Builder $query) => $query->orderBy('firstname')->orderBy('lastname'),
-                            )
-                        ->label(__("Customer"))
-                        ->getOptionLabelFromRecordUsing(fn (Model $record) => "{$record->firstname} {$record->lastname}")
-                        ->required()
-                        ->preload()
-                        ->searchable()
-                        ->createOptionForm([
-                            Grid::make()
-                                    ->schema([
-                                        TextInput::make('firstname')
-                                            ->label(__("First name"))
-                                            ->required()
-                                            ->maxLength(255),
-                                        TextInput::make('lastname')
-                                            ->label(__('Last name'))
-                                            ->required()
-                                            ->maxLength(255),
-                                    ])->columns(2),
-                            Grid::make()
-                                ->schema([
-                                    TextInput::make('middle_name')
-                                        ->label(__("Middle Name"))
-                                        ->required()
-                                        ->maxLength(255),
-                                    Select::make('gender')
-                                        ->label(__('Gender'))
-                                        ->options([
-                                            "Male" => __("Male"),
-                                            "Female" => __("Female"),
-                                        ])
-                                        ->required(),
-                                ])->columns(2),
-                            Grid::make()
-                                ->schema([
-                                    TextInput::make('identity_number')
-                                        ->label(__("No ID"))
-                                        ->numeric()
-                                        ->required()
-                                        ->maxLength(255),
-                                    TextInput::make('email')
-                                        ->email()
-                                        ->required()
-                                        ->maxLength(255),
-                                ])->columns(2),
-                            Grid::make()
-                                ->schema([
-                                    DateTimePicker::make('date_of_birth')
-                                        ->label('Date of Birth')
-                                        ->minDate(now()->subYear(90))
-                                        ->maxDate(now()->subYear(10))
-                                        ->required(),
-                                ])->columns(2),
+                Grid::make()
+                    ->schema([
+                        Select::make('customer_id')
+                                ->relationship(
+                                    name:'customer',
+                                        modifyQueryUsing: fn (Builder $query) => $query->orderBy('firstname')->orderBy('lastname'),
+                                    )
+                                ->label(__("Customer"))
+                                ->getOptionLabelFromRecordUsing(fn (Model $record) => "{$record->firstname} {$record->lastname}")
+                                ->required()
+                                ->preload()
+                                ->searchable()
+                                ->createOptionForm([
+                                    Grid::make()
+                                            ->schema([
+                                                TextInput::make('firstname')
+                                                    ->label(__("First name"))
+                                                    ->required()
+                                                    ->maxLength(255),
+                                                TextInput::make('lastname')
+                                                    ->label(__('Last name'))
+                                                    ->required()
+                                                    ->maxLength(255),
+                                            ])->columns(2),
+                                    Grid::make()
+                                        ->schema([
+                                            TextInput::make('middle_name')
+                                                ->label(__("Middle Name"))
+                                                ->required()
+                                                ->maxLength(255),
+                                            Select::make('gender')
+                                                ->label(__('Gender'))
+                                                ->options([
+                                                    "Male" => __("Male"),
+                                                    "Female" => __("Female"),
+                                                ])
+                                                ->required(),
+                                        ])->columns(2),
+                                    Grid::make()
+                                        ->schema([
+                                            TextInput::make('identity_number')
+                                                ->label(__("No ID"))
+                                                ->numeric()
+                                                ->required()
+                                                ->maxLength(255),
+                                            TextInput::make('email')
+                                                ->email()
+                                                ->required()
+                                                ->maxLength(255),
+                                        ])->columns(2),
+                                    Grid::make()
+                                        ->schema([
+                                            DateTimePicker::make('date_of_birth')
+                                                ->label('Date of Birth')
+                                                ->minDate(now()->subYear(90))
+                                                ->maxDate(now()->subYear(10))
+                                                ->required(),
+                                        ])->columns(2),
 
-                        ]),
+                                ]),
+
+                        Select::make('currency_id')
+                            ->label(__("Currency"))
+                            ->relationship("currency", "iso_code", modifyQueryUsing: fn(Builder $query) => $query->where("is_active", true))
+                            ->default(self::$currency)
+                            ->afterStateUpdated(function(callable $set, callable $get) {
+                                $set('prefix_field', Currency::where("id", $get("currency_id"))->first()->symbol);
+                                self::updateTotals($get, $set);
+                            })
+                            ->disabled(true)
+                            ->dehydrated(true)
+                            ->default(self::$currency)
+                            ->reactive()
+                            ->required(),
+                    ]),
                 Section::make()
                     ->schema([
                         Repeater::make("orderProducts")
@@ -179,7 +213,8 @@ class OrderResource extends Resource
                                     $product = Product::find($get('product_id'));
                                     if($product != null){
                                         $discount = self::productDiscount($product);
-                                        $set("discount", $discount);
+
+                                        $set("discount", self::convertToCurrency($product, $discount));
 
                                         if(Product::hasDeclinations(Product::find($get('product_id')))){
                                             self::updateFieldsDeclination($product, $set);
@@ -208,14 +243,15 @@ class OrderResource extends Resource
                                     ->numeric()
                                     ->disabled()
                                     ->dehydrated(true)
-                                    ->prefix("$")
+                                    ->reactive()
+                                    ->prefix(fn(callable $get) => $get("prefix_field") ?: Currency::where("id", $get("../../currency_id"))->first()->symbol)
                                     ->default(0),
                                 TextInput::make("sub_totals")
                                     ->numeric()
                                     ->disabled()
                                     ->dehydrated(true)
                                     ->reactive()
-                                    ->prefix("$")
+                                    ->prefix(fn(callable $get) => $get("prefix_field") ?: Currency::where("id", $get("../../currency_id"))->first()->symbol)
                                     ->default(0)
                                     ->afterStateUpdated(function(Get $get, Set $set, $livewire){
                                         self::updateTotals($get, $set, $livewire);
@@ -272,6 +308,23 @@ class OrderResource extends Resource
                            ->itemLabel(fn (array $state): ?string =>
                                self::labelProduct(self::getProduct($state['product_id'])) ?? null)
                             ->addActionLabel(__("Add products"))
+                            ->extraItemActions([
+                                Action::make('openProduct')
+                                    ->tooltip('Open product')
+                                    ->icon('heroicon-m-arrow-top-right-on-square')
+                                    ->url(function (array $arguments, Repeater $component): ?string {
+                                        $itemData = $component->getRawItemState($arguments['item']);
+
+                                        $product = Product::find($itemData['product_id']);
+
+                                        if (! $product) {
+                                            return null;
+                                        }
+
+                                        return ProductResource::getUrl('edit', ['record' => $product]);
+                                    }, shouldOpenInNewTab: true)
+                                    ->hidden(fn (array $arguments, Repeater $component): bool => blank($component->getRawItemState($arguments['item'])['product_id'])),
+                            ])
                     ])->columns(1),
 
                 Section::make()
@@ -298,7 +351,7 @@ class OrderResource extends Resource
                                                 ->live(),
                                             TextInput::make('costs')
                                                     ->label(__("Price"))
-                                                    ->prefix('$')
+                                                ->prefix(fn(callable $get) => $get("prefix_field") ?: Currency::where("id", $get("../currency_id"))->first()->symbol)
                                                     ->default(0)
                                                     ->numeric()
                                                     ->lazy()
@@ -447,15 +500,17 @@ class OrderResource extends Resource
                     ->schema(self::couponColumn())
                     ->columnSpanFull(),
                     TextInput::make('total_discount')
-                          ->label(__("Discount"))
-                          ->prefix('$')
-                          ->disabled()
-                          ->dehydrated(true)
-                          ->default(0),
+                        ->label(__("Discount"))
+                        ->reactive()
+                        ->prefix(fn(callable $get) => $get("prefix_field") ?: Currency::where("id", $get("currency_id"))->first()->symbol)
+                        ->disabled()
+                        ->dehydrated(true)
+                        ->default(0),
                       TextInput::make('total_amount_order')
                           ->label(__("Totals"))
                           ->readOnly()
-                          ->prefix('$')
+                          ->reactive()
+                          ->prefix(fn(callable $get) => $get("prefix_field") ?: Currency::where("id", $get("currency_id"))->first()->symbol)
                           ->default(0)
                           ->required(),
                       Forms\Components\TextInput::make('order_amount')
@@ -465,6 +520,7 @@ class OrderResource extends Resource
                           ->minValue(0)
                           ->lte("total_amount_order")
                           ->live(onBlur: true)
+                          ->prefix(fn(callable $get) => $get("prefix_field") ?: Currency::where("id", $get("currency_id"))->first()->symbol)
                           ->afterStateUpdated(function (Get $get, Set $set) {
                               self::updateBalance($get, $set);
                           })
@@ -473,6 +529,8 @@ class OrderResource extends Resource
                           ->label(__("Balance"))
                           ->disabled()
                           ->dehydrated(true)
+                          ->reactive()
+                          ->prefix(fn(callable $get) => $get("prefix_field") ?: Currency::where("id", $get("currency_id"))->first()->symbol)
                           ->numeric(),
                   ])->columns(3),
         ]);
@@ -510,11 +568,11 @@ class OrderResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->sortable(['customer.firstname', 'customer.lastname']),
                 Tables\Columns\TextColumn::make('total_amount_order')
-                    ->money("USD")
+                    ->money(fn(Order $record) => $record->currency->iso_code)
                     ->sortable(),
                 Tables\Columns\TextColumn::make('order_amount')
                     ->label(__("Payment"))
-                    ->money("USD")
+                    ->money(fn(Order $record) => $record->currency->iso_code)
                     ->sortable(),
                 Tables\Columns\TextColumn::make('state')
                     ->formatStateUsing(fn (Order $record) => $record->state->label())
@@ -654,7 +712,8 @@ class OrderResource extends Resource
 
     //     $livewire->declinationPrices = $declinationPrices;
     // }
-    private static function prod(){
+    private static function prod(): Grid
+    {
        return
             Grid::make()
             ->schema([
@@ -696,12 +755,14 @@ class OrderResource extends Resource
         // Calculate prices and discounts
         $prices = Product::find($selectedProducts->pluck('product_id'))->pluck('price', 'id');
 
-        $subtotal = $selectedProducts->reduce(function ($acc, $product) use ($prices) {
+        $subtotal = $selectedProducts->reduce(function ($acc, $product) use ($prices, $get) {
             $productId = $product["product_id"];
             $productModel = Product::find($productId);
             $quantity = $product["quantity"];
-            $productPrice = $prices[$productId];
-            $productDiscount = self::productDiscount($productModel);
+
+            $productPrice =    self::convertToCurrency($productModel, $prices[$productId]);
+
+            $productDiscount = self::convertToCurrency($productModel, self::productDiscount($productModel));
 
             // Calculate the subtotal and discount total
             $acc['total'] += ($productPrice - $productDiscount) * $quantity;
@@ -733,8 +794,10 @@ class OrderResource extends Resource
 
     /**
      * Updates subtotal for a single product including declinations and delivery
+     * @param $get
+     * @param $set
      */
-    public static function updateSubTotal($get, $set)
+    public static function updateSubTotal($get, $set): void
     {
         if(!is_null(Product::find($get('product_id')))) {
             $product = Product::find($get('product_id'));
@@ -742,7 +805,8 @@ class OrderResource extends Resource
             $delivery_price = self::productDeliveryCosts(Delivery::find($get("delivery_id")));
             $declinationPrice = Declination::find($get("declination_id"))->price ?? 0;
 
-            $set("sub_totals", ($product->price + $declinationPrice + $delivery_price - $discount) * $get("quantity"));
+            $sub_totals = ($product->price + $declinationPrice + $delivery_price - $discount) * $get("quantity");
+            $set("sub_totals", self::convertToCurrency($product, $sub_totals));
         }
     }
 
@@ -926,6 +990,20 @@ class OrderResource extends Resource
             ];
     }
 
+    /**
+     * @param Product $product
+     * @param $amount
+     * @return float
+     */
+    public static function convertToCurrency(Product $product, $amount): float
+    {
+
+        $currency = Currency::where("id", self::$currency)->first();
+        $from = $product->currency->iso_code;
+        $to = $currency->iso_code;
+
+        return Currency::convert($amount, $from, $to);
+    }
 
 
 }

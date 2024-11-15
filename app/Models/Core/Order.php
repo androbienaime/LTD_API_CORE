@@ -39,6 +39,10 @@ class Order extends Model
         "state_data" => 'array',
     ];
 
+    public function currency() : BelongsTo
+    {
+        return $this->belongsTo(Currency::class);
+    }
     public function order_advance() : BelongsTo{
         return $this->belongsTo(OrderAdvance::class);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Core\Trait\Concerns\HasConvertCurrency;
 use App\Models\Core\Currency;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -9,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 
 class CurrencyServices
 {
+    use HasConvertCurrency;
     private $apiKey;
     private $apiUrl;
 
@@ -56,33 +58,7 @@ class CurrencyServices
         return ["updated" => $updated, "error" => $error];
     }
 
-    public function convert(float $amount, string $from, string $to): float
-    {
-        $fromCurrency = $this->getCurrency($from);
-        $toCurrency = $this->getCurrency($to);
 
-        if (!$fromCurrency || !$toCurrency) {
-            throw new \InvalidArgumentException('Invalid currency codes');
-        }
 
-        // Convert through base currency (USD)
-        $inUSD = $amount / $fromCurrency->exchange_rate;
-        return $inUSD * $toCurrency->exchange_rate;
-    }
-
-    protected function getCurrency(string $iso_code): ?Currency
-    {
-        return Cache::remember(
-            "currency_{$iso_code}",
-            now()->addHour(),
-            fn () => Currency::where('iso_code', $iso_code)->first()
-        );
-//        return Currency::where('iso_code', $iso_code)->first();
-    }
-
-    protected function clearCache(): void
-    {
-        Cache::tags(['currencies'])->flush();
-    }
 
 }

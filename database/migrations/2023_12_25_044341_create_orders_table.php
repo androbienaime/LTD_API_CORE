@@ -20,6 +20,7 @@ return new class extends Migration
             $table->decimal("total_amount_order", 16, 5);
             $table->string("reference_order");
             $table->string("secure_key");
+            $table->foreignId("currency_id")->constrained("currencies");
 
             $table->string("state");
             $table->json("state_data")->nullable(true);

@@ -58,7 +58,7 @@ class Login extends BaseLogin
 
         if(is_null(Account::findShopByAccount($user))){
             throw ValidationException::withMessages([
-                'data.email' => __("you are not associated with any shop, consult this address https://xxx.com to see if you are eligible to create a shop."),
+                'data.email' => __("you are not associated with any shop, consult this address to see if you are eligible to create a shop."),
             ]);
         }
 
