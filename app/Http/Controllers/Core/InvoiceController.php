@@ -25,7 +25,7 @@ class InvoiceController extends Controller
         $formatter = new IntlDateFormatter('fr_FR', IntlDateFormatter::LONG, IntlDateFormatter::NONE);
         $date = new DateTime($order->created_at);
 
-        // Customer 
+        // Customer
         $customerInfo = ["fullname" => "", "phone" => null];
         if($order->customer){
             $customer = $order->customer;
@@ -78,19 +78,19 @@ class InvoiceController extends Controller
                 "versement" => number_format($order->order_amount, 2, '.', ''),
                 "balance" => number_format($order->total_amount_order - $order->order_amount, 2, '.', '')
             ],
-            "delivery" => ["delivery_date" => $delivery_date]
+            "delivery" => ["delivery_date" => $delivery_date],
+            "currency" => $order->currency
         ]);
     }
 
     public function productDeclination($declination) : array{
         $result = [];
         if($declination != null){
-            $values =  Declination::with("values")->findOrFail($declination->id)->values;
-            
+            $values =  Declination::find($declination->id)->values;
             foreach($values as $value){
                 $result[] = [
-                        $value->attributeValue->first()->attribute->name => $value->value,
-                ]; 
+                        $value->attribute->name => $value->value,
+                ];
             }
         }
         return $result;

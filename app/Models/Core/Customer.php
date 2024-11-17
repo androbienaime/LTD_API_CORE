@@ -2,6 +2,7 @@
 
 namespace App\Models\Core;
 
+use App\Core\Trait\Concerns\CustomerTrait;
 use App\Core\Trait\Models\AccountGlobalScopeTrait;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,7 +14,12 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Customer extends Model
 {
-    use HasFactory, Notifiable, InteractsWithMedia, AccountGlobalScopeTrait;
+    use HasFactory, 
+        Notifiable, 
+        InteractsWithMedia, 
+        AccountGlobalScopeTrait,
+        CustomerTrait;
+
 
     protected $fillable = [
         "firstname",

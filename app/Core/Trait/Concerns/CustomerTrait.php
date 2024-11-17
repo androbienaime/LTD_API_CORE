@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Core\Trait;
+namespace App\Core\Trait\Concerns;
 
 use App\Models\Core\Customer;
 

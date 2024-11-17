@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Core\OrderResource\Pages;
 
+use App\Core\ResourceModules\Concerns\HasSelectCurrency;
 use App\Filament\Resources\Core\OrderResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;

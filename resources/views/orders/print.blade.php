@@ -33,14 +33,14 @@
             <div class="text-center">
                 <p>76, Rue Poudrière, Trou-du-Nord</p>
                 <p>Téléphones: (+509) 33 35 6231 / 48 33 4060</p>
-                <p>E-mail: <a href="mailto:admin@lestruviens.com" class="text-primary">admin@lestruviens.com</a></p>                
+                <p>E-mail: <a href="mailto:admin@lestruviens.com" class="text-primary">admin@lestruviens.com</a></p>
             </div>
         </header>
 
         <!-- Infos Client -->
         <section class="mb-8">
             <p class="">Facture À : {{ $customer["fullname"] }}</p>
-            
+
             @if(!is_null($customer['phone']))
                 <p class="">Téléphone: +509 {{ $customer['phone'] }}</p>
             @endif
@@ -80,9 +80,9 @@
                     <td class="border border-gray-300 px-4 py-2">
                         <img src="{{ $orderProduct['products']['cover_image'] }}" class="w-32"/>
                     </td>
-                    <td class="border border-gray-300 px-4 py-2">{{ $orderProduct['price_unit'] }} USD</td>
+                    <td class="border border-gray-300 px-4 py-2">{{ $orderProduct['price_unit'] }} {{ $currency->symbol }}.</td>
                     <td class="border border-gray-300 px-4 py-2">{{ $orderProduct['quantity'] }}</td>
-                    <td class="border border-gray-300 px-4 py-2">{{ $orderProduct['sub_totals'] }}</td>
+                    <td class="border border-gray-300 px-4 py-2">{{ $orderProduct['sub_totals'] }} {{ $currency->symbol }}.</td>
                 </tr>
             @endforeach
         @endif
@@ -106,12 +106,12 @@
 
         <div class="flex justify-end mb-8">
             <div class="text-right">
-                <p><span class="font-semibold">Total:</span> {{ $order["total_amount"] }} USD</p>
+                <p><span class="font-semibold">Total:</span> {{ $order["total_amount"] }} {{ $currency->iso_code }}</p>
                 @if($order["discount"] > 0)
-                    <p><span class="font-semibold">Réduction:</span> {{ $order["discount"]}} USD</p>
+                    <p><span class="font-semibold">Réduction:</span> {{ $order["discount"]}} {{ $currency->iso_code }}</p>
                 @endif
-                <p><span class="font-semibold">Versement:</span> {{ $order["versement"]}} USD</p>
-                <p class="font-semibold text-primary"><span>Balance:</span> {{ $order["balance"]}} USD</p>
+                <p><span class="font-semibold">Versement:</span> {{ $order["versement"]}} {{ $currency->iso_code }}</p>
+                <p class="font-semibold text-primary"><span>Balance:</span> {{ $order["balance"]}} {{ $currency->iso_code }}</p>
             </div>
         </div>
 

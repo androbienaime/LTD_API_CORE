@@ -11,13 +11,13 @@ trait SelectFieldTrait
         ->options(
             array_map(function($val){
                     return $val;
-                }, $field["options"]) 
-            
+                }, $field["options"])
+
             )
         ->required($field['required'] ?? false)
         ->live($field['live'] ?? false)
         ->lazy($field['lazy'] ?? false);
-    
+
         if(isset($field["dehydrated"])){
             $input->dehydrated($field["dehydrated"]);
         }
@@ -35,7 +35,7 @@ trait SelectFieldTrait
                     }
                 }
             }
-        }   
+        }
 
         return $input;
     }

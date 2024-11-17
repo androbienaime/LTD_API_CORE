@@ -48,7 +48,6 @@ class ProductDeclinations
                                 ->options(function () {
                                     return self::getValues();
                                 })
-                                ->preload()
                                 // ->saveRelationshipsUsing(function ($component, $state, $record) {
                                 //     // Synchroniser les catégories dans la table pivot sans toucher à `category_id` du modèle principal
                                 //     $record->declinationValues()->attach($state);
