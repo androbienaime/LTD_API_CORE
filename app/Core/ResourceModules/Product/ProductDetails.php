@@ -2,6 +2,7 @@
 
 namespace App\Core\ResourceModules\Product;
 
+use App\Core\ResourceModules\HasResourceStatus;
 use App\Core\States\GeneralStatus\ActiveState;
 use App\Core\States\GeneralStatus\InactiveState;
 use App\Models\Core\Brand;
@@ -24,6 +25,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ProductDetails
 {
+    use HasResourceStatus;
+
     public static function form(){
         return Grid::make()
         ->schema([
@@ -67,11 +70,7 @@ class ProductDetails
                             ->required(),
                         Toggle::make('is_available_market')
                             ->required(),
-                        Select::make("status")
-                                ->options([
-                                    ActiveState::class => "Active",
-                                    InactiveState::class => "Desactive"
-                                ])->default(ActiveState::class),
+                        self::FormStatus()->required(),
                         Toggle::make('is_downloaddable')
                             ->label(__("Downloaddable"))
                             ->required(),

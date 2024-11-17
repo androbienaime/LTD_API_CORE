@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Core;
 
+use App\Core\ResourceModules\HasResourceStatus;
 use Filament\Forms;
 use Filament\Tables;
 use Filament\Forms\Get;
@@ -20,6 +21,8 @@ use App\Filament\Resources\Core\CategoryResource\RelationManagers;
 
 class CategoryResource extends Resource
 {
+    use HasResourceStatus;
+
     protected static ?string $model = Category::class;
 
     // protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
@@ -53,7 +56,8 @@ class CategoryResource extends Resource
                 Select::make('parent_id')
                     ->options(function() : array{
                         return Category::all()->pluck("name", "id")->all();
-                })
+                }),
+                self::FormStatus()
             ]);
     }
 
@@ -68,6 +72,8 @@ class CategoryResource extends Resource
                 TextColumn::make('parent.name')
                     ->label('Parent Category')
                     ->searchable(),
+
+                    self::TablesStatus(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -81,6 +87,7 @@ class CategoryResource extends Resource
                 //
             ])
             ->actions([
+                self::ActionStatus(),
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
             ])

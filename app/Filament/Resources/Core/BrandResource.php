@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Core;
 
+use App\Core\ResourceModules\HasResourceStatus;
 use Filament\Forms;
 use Filament\Tables;
 use Filament\Forms\Form;
@@ -16,6 +17,8 @@ use App\Filament\Resources\Core\BrandResource\RelationManagers;
 
 class BrandResource extends Resource
 {
+    use HasResourceStatus;
+    
     protected static ?string $model = Brand::class;
 
     // protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
@@ -51,6 +54,8 @@ class BrandResource extends Resource
                     ,
                 Forms\Components\TextInput::make('color')
                     ->maxLength(255),
+                self::FormStatus()
+                    ->required()
             ]);
     }
 
@@ -68,6 +73,9 @@ class BrandResource extends Resource
                     ->conversion('thumb'),
                 Tables\Columns\TextColumn::make('color')
                     ->searchable(),
+
+                    self::TablesStatus(),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -81,6 +89,7 @@ class BrandResource extends Resource
                 //
             ])
             ->actions([
+                self::ActionStatus(),
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
             ])

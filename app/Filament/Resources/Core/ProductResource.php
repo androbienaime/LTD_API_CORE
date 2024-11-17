@@ -8,9 +8,6 @@ use App\Core\ResourceModules\Product\ProductDetails;
 use App\Core\ResourceModules\Product\ProductSeo;
 use App\Core\ResourceModules\Product\ProductShippings;
 use App\Core\ResourceModules\Product\ProductStockAndPrices;
-use App\Core\States\GeneralStatus\ActiveState;
-use App\Core\States\GeneralStatus\InactiveState;
-use Filament\Forms\Components\Select;
 use Filament\Tables;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -215,7 +212,9 @@ class ProductResource extends Resource
                 ToggleColumn::make('available_market')
                     ->label(__("Available Market"))
                     ->toggleable(isToggledHiddenByDefault: true),
-                    self::TablesStatus()
+                    
+                     self::TablesStatus()
+
                     ->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('created_at')
                     ->since()

@@ -2,27 +2,14 @@
 
 namespace App\Core\ResourceModules;
 
-use App\Core\States\GeneralStatus\ActiveModelTransition;
 use App\Core\States\GeneralStatus\ActiveState;
-use App\Core\States\GeneralStatus\BlockedState;
 use App\Core\States\GeneralStatus\InactiveState;
-use App\Core\States\GeneralStatus\SuspendedState;
-use App\Core\States\Order\CancelledState;
-use App\Core\States\Order\DeliveredState;
-use App\Core\States\Order\PendingState;
-use App\Core\States\Order\ProcessingState;
-use App\Core\States\Order\ReturnedState;
-use App\Core\States\Order\ShippedState;
-use App\Models\Core\Order;
-use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
-use Illuminate\Database\Eloquent\Model;
 
 trait HasResourceStatus
 {
@@ -83,5 +70,13 @@ trait HasResourceStatus
             ->formatStateUsing(fn ($record) => $record->status->label())
             ->badge()
             ->color(fn ($record): string => $record->status->color());
+    }
+
+    public static function FormStatus() : Select{
+        return Select::make("status")
+            ->options([
+                ActiveState::class => "Active",
+                InactiveState::class => "Desactive"
+            ])->default(ActiveState::class);
     }
 }

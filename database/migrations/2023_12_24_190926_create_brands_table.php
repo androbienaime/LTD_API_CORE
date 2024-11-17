@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string("name");
             $table->string("logo")->nullable(true);
             $table->string("color")->nullable(true);
+            $table->string("status");
             $table->timestamps();
         });
     }

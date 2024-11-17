@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Core;
 
+use App\Core\ResourceModules\HasResourceStatus;
 use Filament\Forms;
 use Filament\Tables;
 use Filament\Forms\Form;
@@ -16,6 +17,8 @@ use App\Filament\Resources\Core\AttributeResource\RelationManagers\ValueRelation
 
 class AttributeResource extends Resource
 {
+    use HasResourceStatus;
+
     protected static ?string $model = Attribute::class;
 
     // protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
@@ -45,6 +48,7 @@ class AttributeResource extends Resource
                         "color" => __("Color"),
                         "radio" => __("Radio"),
                     ]),
+                self::FormStatus()->required()
             ]);
     }
 
@@ -56,6 +60,8 @@ class AttributeResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('type')
                     ->searchable(),
+
+                    self::TablesStatus(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -69,6 +75,7 @@ class AttributeResource extends Resource
                 //
             ])
             ->actions([
+                self::ActionStatus(),
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
             ])

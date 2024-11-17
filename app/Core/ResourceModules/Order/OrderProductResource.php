@@ -43,7 +43,7 @@ class OrderProductResource
     }
 
     /**
-     * @return Grid
+     * @return array
      */
     public static function form() : array
     {
