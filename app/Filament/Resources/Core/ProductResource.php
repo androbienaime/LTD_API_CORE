@@ -201,7 +201,7 @@ class ProductResource extends Resource
                 ->label(__("Brand"))
                 ->inline()
                 ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('shop_id')
+                Tables\Columns\TextColumn::make('shop.name')
                 ->label(__('Shop'))
                     ->numeric()
                     ->sortable()

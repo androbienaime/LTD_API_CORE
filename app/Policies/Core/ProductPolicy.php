@@ -5,7 +5,9 @@ namespace App\Policies\Core;
 use App\Models\User;
 use App\Models\Core\Account;
 use App\Models\Core\Product;
+use Filament\Facades\Filament;
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Support\Facades\Auth;
 
 class ProductPolicy
 {
@@ -32,6 +34,10 @@ class ProductPolicy
      */
     public function create(Account|User $account): bool
     {
+        if (!auth()->guard('account')->check()) {
+            return false;
+        }
+
         return $account->can('create_core::product');
     }
 
@@ -40,6 +46,10 @@ class ProductPolicy
      */
     public function update(Account|User $account, Product $product): bool
     {
+        if (!auth()->guard('account')->check()) {
+            return false;
+        }
+        
         return $account->can('update_core::product');
     }
 

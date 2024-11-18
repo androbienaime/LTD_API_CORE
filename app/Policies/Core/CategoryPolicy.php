@@ -32,6 +32,10 @@ class CategoryPolicy
      */
     public function create(Account|User $account): bool
     {
+        if (!auth()->guard('account')->check()) {
+            return false;
+        }
+
         return $account->can('create_core::category');
     }
 
@@ -40,6 +44,10 @@ class CategoryPolicy
      */
     public function update(Account|User $account, Category $category): bool
     {
+        if (!auth()->guard('account')->check()) {
+            return false;
+        }
+        
         return $account->can('update_core::category');
     }
 

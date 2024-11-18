@@ -151,7 +151,7 @@ class OrderProductResource
                                 self::updateSubTotal($get, $set);
                             })
                             ->required(),
-                        TextInput::make("declination_id")
+                        Hidden::make("declination_id")
                         ->afterStateUpdated(function(Get $get, Set $set) {
                             if ($get('declination_id')) {
                                 self::updateTotals($get, $set);
