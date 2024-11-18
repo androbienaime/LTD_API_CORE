@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\Core\BrandResource\Pages;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use App\Filament\Resources\Core\BrandResource\RelationManagers;
+use Filament\Forms\Components\ColorPicker;
 
 class BrandResource extends Resource
 {
@@ -52,8 +53,7 @@ class BrandResource extends Resource
                     ->imagePreviewHeight(50)
                     ->panelLayout("grid")
                     ,
-                Forms\Components\TextInput::make('color')
-                    ->maxLength(255),
+                ColorPicker::make('color'),
                 self::FormStatus()
                     ->required()
             ]);
@@ -111,7 +111,6 @@ class BrandResource extends Resource
     {
         return [
             'index' => Pages\ListBrands::route('/'),
-            'edit' => Pages\EditBrand::route('/{record}/edit'),
         ];
     }
 }

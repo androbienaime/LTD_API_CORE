@@ -6,6 +6,7 @@ use App\Filament\Resources\Core\CarrierResource\Pages;
 use App\Filament\Resources\Core\CarrierResource\RelationManagers;
 use App\Models\Core\Carrier;
 use Filament\Forms;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -35,9 +36,15 @@ class CarrierResource extends Resource
                 Forms\Components\TextInput::make('speed_grade')
                     ->maxLength(255)
                     ->default(null),
-                Forms\Components\TextInput::make('logo')
-                    ->maxLength(255)
-                    ->default(null),
+                SpatieMediaLibraryFileUpload::make('product_image')
+                    ->reorderable()
+                    ->imageEditor()
+                    ->image()
+                    ->responsiveImages()
+                    ->conversion('thumb')
+                    ->optimize('webp')                    
+                    ->panelLayout("grid")
+                    ,
                 Forms\Components\TextInput::make('tracking_url')
                     ->maxLength(255)
                     ->default(null),

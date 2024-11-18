@@ -6,8 +6,9 @@ use App\Models\Core\Product;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Spatie\MediaLibrary\HasMedia;
 
-class Carrier extends Model
+class Carrier extends Model implements HasMedia
 {
     use HasFactory, InteractsWithMedia;
 
