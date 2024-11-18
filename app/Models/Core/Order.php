@@ -32,11 +32,32 @@ class Order extends Model
     use HasFactory, AccountGlobalScopeTrait, HasStates;
 
     protected static string $tableName = "orders";
-    protected $guarded;
+
+    protected $fillable = [
+        "order_amount",
+        "user_id",
+        "customer_id",
+        "advance_order_id",
+        "total_amount_order",
+        "reference_order",
+        "secure_key",
+        "currency_id",
+        "state",
+        "state_data",
+        "account_id",
+        "merchant_id",
+        "coupon_id",
+        "delivery_id",
+        "has_delivery",
+        "balance",
+        "total_discount",
+        "account_id"
+    ];
 
     protected $casts = [
         "state" => OrderState::class,
         "state_data" => 'array',
+        "has_delivery" => "boolean"
     ];
 
     public function currency() : BelongsTo

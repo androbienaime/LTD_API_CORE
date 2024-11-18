@@ -41,7 +41,6 @@ return new class extends Migration
             $table->boolean("is_available_market")->default(false);
             $table->boolean("has_declination")->default(false);
             $table->string("status"); // [active, draft, inactive, suspended, bloked]
-            $table->boolean("is_downloaddable")->default(false);
             $table->boolean("is_trend")->default(true);
             $table->boolean('is_in_stock')->default(true);
             $table->boolean("has_multi_price")->default(0)->nullable();

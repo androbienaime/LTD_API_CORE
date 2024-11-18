@@ -51,11 +51,52 @@ class Product extends Model implements HasMedia
         HasDeclination,
         HasSlug;
 
-    protected $guarded;
+    protected $fillable = [
+        "name",
+        "slug",
+        "description",
+        "article",
+        "product_type",
+        "sku",
+        "price",
+        "currency_id",
+        "purchase_price",
+        "stock_quantity",
+        "min_stock_alert",
+        "max_stock_alert",
+        "min_cart",
+        "max_cart",
+        "is_available_market",
+        "has_declination",
+        "status",
+        "is_downloadable",
+        "is_trend",
+        "is_in_stock",
+        "has_multi_price",
+        "has_unlimited_stock",
+        "has_discount",
+        "has_max_cart",
+        "has_stock_alert",
+        "status_data",
+        "shop_id",
+        "ltsp_seo_id",
+        "product_discount_id",
+        "merchant_id",
+    ];
 
     protected $casts = [
         "status" => GeneralStatusState::class,
-        "status_data" => 'array'
+        "status_data" => 'array',
+        "is_downloadable" => 'boolean',
+        "is_available_market" => 'boolean',
+        "has_declination" => 'boolean',
+        "is_trend" => 'boolean',
+        "is_in_stock" => 'boolean',
+        "has_multi_price" => 'boolean',
+        "has_unlimited_stock" => 'boolean',
+        "has_discount" => 'boolean',
+        "has_max_cart" => 'boolean',
+        "has_stock_alert" => 'boolean',
     ];
 
     protected static string $tableName = 'products';
