@@ -17,6 +17,7 @@ class LoginResponse implements Responsable
         // Récupérer le path du panel
         $panelPath = $panel->getPath() ?? '/';
 
-        return redirect()->intended($panelPath);
+        // dd(redirect()->intended($panelPath));
+        return redirect($panelPath);
     }
 }
