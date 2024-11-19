@@ -25,9 +25,6 @@ class Declination extends Model implements HasMedia
         "product_id"
     ];
 
-    public function attributeDeclinations() : HasMany{
-        return $this->hasMany(AttributeDeclination::class);
-    }
 
     public function declinationProducts() : HasMany{
         return $this->hasMany(DeclinationProduct::class);

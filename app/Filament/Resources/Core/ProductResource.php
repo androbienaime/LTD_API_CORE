@@ -135,7 +135,7 @@ class ProductResource extends Resource
                     }),
 
 
-                SpatieMediaLibraryImageColumn::make('product_image')
+                SpatieMediaLibraryImageColumn::make('product_images')
                     ->label(__("Image"))
                     ->circular()
                     ->stacked()

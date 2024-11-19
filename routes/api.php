@@ -15,7 +15,10 @@ use App\Http\Controllers\Api\Core\ProductController;
 |
 */
 
-Route::get("products/list", [ProductController::class, 'index']);
+// Route::get("products/list", [ProductController::class, 'index']);
+// Route::post("product/create", [ProductController::class, 'create']);
+
+Route::apiResource("products", ProductController::class);
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();

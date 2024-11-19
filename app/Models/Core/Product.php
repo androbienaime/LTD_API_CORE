@@ -2,13 +2,7 @@
 
 namespace App\Models\Core;
 
-use App\Core\States\GeneralStatus\GeneralStatusState;
-use App\Core\Trait\Concerns\HasDeclination;
-use App\Core\Trait\Concerns\HasGeneralStatus;
-use App\Core\Trait\Concerns\HasSlug;
-use App\Core\Trait\Concerns\HasStatus;
-use App\Core\Trait\Models\AccountGlobalScopeTrait;
-use App\Core\Trait\Models\AccountShopTrait;
+use App\Core\States\GeneralStatus\ActiveState;
 use Spatie\Tags\HasTags;
 use App\Models\Core\Shop;
 use App\Models\Core\Brand;
@@ -23,16 +17,24 @@ use App\Models\Core\Declination;
 use App\Models\Core\BrandProduct;
 use Spatie\MediaLibrary\HasMedia;
 use App\Models\Core\CommentProduct;
+use App\Core\Trait\Concerns\HasSlug;
 use App\Models\Core\CategoryProduct;
 use App\Models\Core\DeliveryProduct;
 use App\Models\Core\ProductDiscount;
+use App\Core\Trait\Concerns\HasStatus;
 use App\Models\Core\DeclinationProduct;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
+use App\Core\Trait\Concerns\HasDeclination;
+use App\Core\Trait\Models\AccountShopTrait;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Illuminate\Cache\RateLimiting\Unlimited;
+use App\Core\Trait\Concerns\HasGeneralStatus;
 use Spatie\MediaLibrary\Conversions\Conversion;
+use App\Core\Trait\Models\AccountGlobalScopeTrait;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\MediaLibrary\MediaCollections\FileAdder;
+use App\Core\States\GeneralStatus\GeneralStatusState;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -109,6 +111,17 @@ class Product extends Model implements HasMedia
 
     }
 
+    public function getImagesWithUrls()
+    {
+        return $this->getMedia('product_images')->map(function($media) {
+            return [
+                'original_url' => $media->getUrl(),
+                'thumb_url' => $media->getUrl('thumb'),
+                'file_name' => $media->file_name
+            ];
+        });
+    }
+    
     public function currency() : BelongsTo{
         return $this->belongsTo(Currency::class);
     }
@@ -169,5 +182,30 @@ class Product extends Model implements HasMedia
         return $this->getFirstMedia() ? $this->getFirstMedia()->getUrl("thumb") : null;
     }
 
+    // Scope pour filtrer les produits en stock et actifs
+    public function scopeAvailable(Builder $query)
+    {
+        return $query->where(function($q) {
+            $q->where('has_unlimited_stock', true)
+              ->orWhere(function($subQ) {
+                  $subQ->where('has_unlimited_stock', false)
+                       ->where('stock_quantity', '>', 0);
+              });
+        })->where('status', ActiveState::class)
+          ->where('is_in_stock', true);
+    }
 
+    // Vérifie si le produit est disponible
+    public function isAvailable(): bool
+    {
+        return $this->isActivated() && $this->stock > 0;
+    }
+
+    // Récupérer les produits disponibles avec leurs médias
+    public static function getAvailableProductsWithMedia()
+    {
+        return self::with(['media', 'categories', 'brands'])
+                   ->available()
+                   ->get();
+    }
 }

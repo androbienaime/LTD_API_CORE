@@ -30,9 +30,6 @@ class Attribute extends Model
         "status_data" => 'array'
     ];
 
-    public function attributeDeclinations() : HasMany{
-        return $this->hasMany(AttributeDeclination::class);
-    }
 
     public function values() : HasMany{
         return $this->hasMany(Value::class);

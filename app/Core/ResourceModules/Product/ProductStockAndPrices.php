@@ -25,7 +25,7 @@ class ProductStockAndPrices
                     Toggle::make('is_in_stock')
                         ->label(__("In Stock"))
                         ->live()
-                        ->default(false)
+                        ->default(true)
                         ->required(),
                     Toggle::make('has_unlimited_stock')
                         ->label("Unlimited Stock")

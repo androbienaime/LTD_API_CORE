@@ -35,7 +35,7 @@ class ProductDetails
             ->schema([
                 Grid::make()
                     ->schema([
-                            SpatieMediaLibraryFileUpload::make('product_image')
+                            SpatieMediaLibraryFileUpload::make('product_images')
                                 ->multiple()
                                 ->required()
                                 ->reorderable()
@@ -126,10 +126,11 @@ class ProductDetails
                                     $record->categories()->sync($state);
                                 }),
 
-                                Select::make('brand')
-                                ->relationship('brands')
+                            Select::make('brand')
+                                ->relationship('brands', 'name')
                                 ->multiple()
                                 ->searchable()
+                                ->preload()
                                 ->options(Brand::all()
                                     ->pluck('name', 'id')
                                     ->toArray()

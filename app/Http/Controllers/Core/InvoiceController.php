@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Core;
 
-use App\Core\Trait\CustomerTrait;
-use App\Http\Controllers\Controller;
-use App\Models\Core\Declination;
-use App\Models\Core\Order;
 use DateTime;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Date;
 use IntlDateFormatter;
+use App\Models\Core\Order;
+use Illuminate\Http\Request;
+use App\Models\Core\Declination;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Date;
+use App\Core\Trait\Concerns\CustomerTrait;
 
 class InvoiceController extends Controller
 {
