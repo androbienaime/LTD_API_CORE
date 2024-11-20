@@ -42,7 +42,7 @@ class lestruviens extends Command
             return 1;
         }
 
-        $this->call("shield:upgrade");
+        $this->call('shield:install', ['panel' => 'admin']);
         $this->info("Shield terminée");
 
 
@@ -51,7 +51,7 @@ class lestruviens extends Command
         $this->info("Optimisation terminée");
 
         $this->call("shield:generate", ["--all" => true,
-        "--ignore-existing-policies" => true]);
+        "--ignore-existing-policies" => true, "--panel" => "admin"]);
         $this->info("Permissions générées");
 
         $this->info(__("This step can take a long time, please be patient.."));
