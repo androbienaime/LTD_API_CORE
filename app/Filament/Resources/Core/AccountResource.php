@@ -37,11 +37,6 @@ use Filament\Tables\Actions\DeleteBulkAction;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\Core\AccountResource\Pages;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
-use App\Filament\Resources\Core\AccountResource\RelationManagers;
-use App\Filament\Resources\Core\AccountResource\Pages\EditAccount;
-use App\Filament\Resources\Core\AccountResource\Pages\ViewAccount;
-use App\Filament\Resources\Core\AccountResource\Pages\ListAccounts;
-use App\Filament\Resources\Core\AccountResource\Pages\CreateAccount;
 
 class AccountResource extends Resource
 {

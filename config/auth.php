@@ -47,6 +47,10 @@ return [
                 'login' => App\Filament\Auth\Shop\Login::class,
             ],
         ],
+        'account-service' => [
+            'driver' => 'jwt',
+            'provider' => 'accounts'
+        ],
     ],
 
     /*
