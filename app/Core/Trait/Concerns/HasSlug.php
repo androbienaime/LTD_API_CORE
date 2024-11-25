@@ -3,6 +3,7 @@
 namespace App\Core\Trait\Concerns;
 
 use App\Models\Core\Account;
+use App\Models\Core\Product;
 use Illuminate\Support\Str;
 
 trait HasSlug
@@ -23,5 +24,14 @@ trait HasSlug
             $shop = Account::findShopByAccount($accountConnected);
             return "{$shop->slug}-{$slug}-{$count}";
         }
-        return $count > 0 ? (string) "{$shop->slug}-{$slug}-{$count}" : $slug;    }
+        return $count > 0 ? (string) "{$shop->slug}-{$slug}-{$count}" : $slug;    
+    }
+
+    public static function findBySlug(string $slug){
+        if(!Product::where("slug", $slug)->first()){
+            return null;
+        }
+
+        return Product::where("slug", $slug)->first();
+    }
 }

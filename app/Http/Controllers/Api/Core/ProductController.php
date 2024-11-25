@@ -113,10 +113,10 @@ class ProductController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(string $slug)
     {
-        if(Product::find($id)){
-            return new ProductResource(Product::find($id));
+        if(Product::findBySlug($slug)){
+            return new ProductResource(Product::findBySlug($slug));
         }else{
             return response()->json([
                 "message" => "Product not found"

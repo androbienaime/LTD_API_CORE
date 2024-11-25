@@ -17,8 +17,6 @@ class ProductResource extends JsonResource
     {   
         
         return [
-            "declination" => Product::hasDeclinations($this->resource) ? DeclinationResource::collection($this->declinations) : null,
-            "id"=> $this->id,
             "name" => $this->name,
             "slug" => $this->slug,
             "article" => $this->article,
@@ -29,7 +27,8 @@ class ProductResource extends JsonResource
                 // return $media->id."/".$media->file_name;
                 return $media->getUrl();
             }),
-            "shop" => $this->shop,
+            "declination" => Product::hasDeclinations($this->resource) ? DeclinationResource::collection($this->declinations) : null,
+            "shop" => new ShopResource($this->shop),
             "currency" => $this->currency,
             "categories" => CategoryResource::collection(($this->whenLoaded('categories'))),
             "brands" => BrandResource::collection(($this->whenLoaded('brands'))),

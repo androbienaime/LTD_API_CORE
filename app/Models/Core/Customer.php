@@ -30,7 +30,7 @@ class Customer extends Model
         "email",
         "date_of_birth",
         "shop_id",
-        "account_id"
+        "merchant_id"
     ];
 
     protected static string $tableName = "customers";

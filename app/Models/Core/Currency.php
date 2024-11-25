@@ -13,7 +13,7 @@ class Currency extends Model
     use HasFactory, HasConvertCurrency;
 
     protected $fillable = [
-        "currency",
+        "name",
         "symbol",
         "iso_code",
         "exchange_rate"

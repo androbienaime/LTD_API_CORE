@@ -28,7 +28,7 @@ class OrderProduct extends Pivot
         return $this->belongsTo(Declination::class, "declination_id");
     }
 
-    public function delivery() : hasMany{
-        return $this->hasMany(Delivery::class);
+    public function delivery() : BelongsTo{
+        return $this->belongsTo(Delivery::class);
     }
 }
