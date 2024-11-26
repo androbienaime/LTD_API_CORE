@@ -2,13 +2,15 @@
 
 namespace App\Services;
 
-use App\Core\Trait\ProductTrait;
+use Exception;
 use App\Models\Core\Order;
 use App\Models\Core\Product;
+use Illuminate\Http\Request;
+use App\Core\Trait\ProductTrait;
 use Illuminate\Support\Facades\DB;
 use App\Http\Requests\Core\OrderRequest;
 use App\Http\Resources\Core\OrderResource;
-use Exception;
+use Illuminate\Validation\ValidationException;
 
 class OrderService
 {
@@ -182,11 +184,62 @@ class OrderService
     }
 
     public static function showState(Order $order){
-        return $order->getAvailableStates();
+       return[
+            "states" => collect($order->getAvailableStates())
+                        ->map(function (string $state) use ($order) {
+                            $stateInstance = new $state($order);
+                    
+                            return [
+                                'value' => class_basename($state), // Récupère uniquement le nom de la classe
+                                'label' => $stateInstance->label(),
+                            ];
+                        })
+                        ->pluck('label', 'value')
+                        ->toArray()
+        ];
     }
 
-    public static function changeState(){
-            
+    public static function changeState(Order $order, Request $request){
+          // Récupérer l'état envoyé
+          $state = $request->input('state');
+
+          // Définir les états disponibles
+          $availableStates = collect($order->getAvailableStates())
+              ->map(fn ($stateClass) => class_basename($stateClass)) // Récupère les noms de classes simples
+              ->toArray();
+  
+          // Valider que l'état envoyé est valide
+          if (!in_array($state, $availableStates)) {
+              throw ValidationException::withMessages([
+                  'state' => "L'état '$state' n'est pas valide pour cette commande.",
+              ]);
+          }
+  
+          // Définir les règles de validation dynamiques
+          $rules = [
+              'state' => 'required|string|in:' . implode(',', $availableStates),
+              'reason' => 'nullable|string|max:255',
+              'tracking_number' => 'nullable|string|max:255',
+          ];
+  
+          // Ajouter des règles spécifiques à certains états
+          if ($state === 'ShippedState') {
+              $rules['tracking_number'] = 'required|string|max:255';
+          }
+  
+          if (in_array($state, ['CancelledState', 'ReturnedState'])) {
+              $rules['reason'] = 'required|string|max:255';
+          }
+  
+          // Validation des données
+          $validated = $request->validate($rules);
+  
+          $order->changeStatus("App\\Core\\States\\Order\\".$state, $validated['reason'] ?? null, $validated['tracking_number'] ?? null);
+  
+          return[
+              'message' => 'État de la commande mis à jour avec succès.',
+              'order' => new OrderResource($order),
+          ];
     }
 
     /**

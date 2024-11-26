@@ -5,12 +5,13 @@ namespace App\Http\Controllers\Api\Core;
 use App\Models\Core\Order;
 use App\Models\Core\Product;
 use Illuminate\Http\Request;
+use App\Services\OrderService;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Core\OrderRequest;
 use App\Services\OrderCalculatorService;
 use App\Http\Resources\Core\OrderResource;
-use App\Services\OrderService;
+use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
@@ -83,4 +84,25 @@ class OrderController extends Controller
     {
         //
     }
+
+    public function showState(Order $order){
+        if($order == null){
+            return response()->json([
+                "error" => "Erreur not found"
+            ]);
+        }
+
+
+        return response()->json(
+            OrderService::showState($order)
+        );
+    }
+
+    public function changeState(Order $order, Request $request)
+    {
+
+        return response()->json(OrderService::changeState($order, $request));
+    }
+
+
 }

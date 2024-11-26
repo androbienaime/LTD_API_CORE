@@ -24,6 +24,8 @@ use App\Http\Controllers\Api\Core\ProductController;
 
 Route::apiResource("products", ProductController::class);
 Route::apiResource("orders", OrderController::class);
+Route::get("order-state/{order}", [OrderController::class, 'showState'])->name("order-show-state");
+Route::post("order-state/{order}", [OrderController::class, 'changeState'])->name("order-change-state");
 
 Route::prefix('account')->group(function () {
     Route::post('register', [AccountController::class, 'register']);
