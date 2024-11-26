@@ -198,7 +198,10 @@ class Product extends Model implements HasMedia
     // Vérifie si le produit est disponible
     public function isAvailable(): bool
     {
-        return $this->isActivated() && $this->stock > 0;
+
+        return $this->isActivated()
+        && $this->is_in_stock 
+        && ($this->has_unlimited_stock || $this->stock_quantity > 0);    
     }
 
     // Récupérer les produits disponibles avec leurs médias

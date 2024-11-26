@@ -8,6 +8,7 @@ use App\Models\Core\Product;
 use Illuminate\Support\Facades\DB;
 use App\Http\Requests\Core\OrderRequest;
 use App\Http\Resources\Core\OrderResource;
+use Exception;
 
 class OrderService
 {
@@ -16,12 +17,11 @@ class OrderService
     public static function createOrder(OrderRequest $request){
         try {
             DB::beginTransaction();
-
-            // Récupération des données validées
+    
             $validated = $request->validated();
-
-            // Créer l'ordre (commande)
-            $order = Order::create([
+    
+            // Créer l'ordre en utilisant un fill similaire à l'update
+            $order = Order::create(array_filter([
                 'customer_id' => $validated['customer'],
                 'currency_id' => $validated['currency'],
                 'account_id' => $validated['account'] ?? null,
@@ -35,59 +35,29 @@ class OrderService
                 'has_delivery' => $validated['has_delivery'],
                 'balance' => $validated['balance'] ?? 0,
                 'total_discount' => $validated['total_discount'] ?? 0,
-            ]);
-
-            // Associer les produits
-            foreach ($validated['order_products'] as $product) {
-                $productModel = Product::find($product['id']);
-
-                // Vérifier la présence de déclinaisons et de livraisons, et valider leur existence
-                self::checkDeclination($productModel, $product);
-                self::checkDelivery($productModel, $product);
-
-                // Créer l'enregistrement dans la relation
-                $order->orderProducts()->create([
-                    'product_id' => $product['id'],
-                    'quantity' => $product['quantity'],
-                    'sub_totals' => OrderCalculatorService::calculateSubtotal([
-                        "product" => Product::find($product['id']),
-                        "declination_id" => $product['declination'] ?? null,
-                        'delivery_id' => $product['delivery'] ?? null,
-                        'currency_id' => $validated['currency'],
-                        "quantity" => $product['quantity'],
-                    ]), 
-                    'discount' => $product['discount'] ?? 0,
-                    'declination_id' => $product['declination'] ?? null,
-                    'delivery_id' => $product['delivery'] ?? null
-                ]);
-
-                $total = OrderCalculatorService::calculateTotal(
-                    $validated['order_products'],
-                    $validated['currency'],
-                    $validated['delivery_cost'] ?? 0,
-                    $validated['coupon_code'] ?? ""
-                );
-                
-                if($validated["order_amount"] > $total){
-                    throw new \Exception("The amount is greather than total");
-                }
-                // Mettre à jour le total
-                $order->update(['total_amount_order' => $total, 'balance' => $total - $validated["order_amount"]]);
+            ]));
+    
+            // Utiliser la méthode syncOrderProducts de l'update
+            if (isset($validated['order_products'])) {
+                self::syncOrderProducts($order, $validated);
             }
-
+    
+            // Utiliser la méthode updateOrderTotal de l'update
+            self::updateOrderTotal($order, $validated);
+    
+            $order->save();
+    
             DB::commit();
-
-            // Retourner une réponse de succès
+    
             return [
                 'message' => 'Commande créée avec succès.',
                 'order' => new OrderResource($order),
                 'code' => 200
             ];
-
+    
         } catch (\Exception $e) {
-            // Annuler toutes les modifications en cas d'erreur
             DB::rollBack();
-
+    
             return [
                 'message' => 'Une erreur est survenue lors de la création de la commande.',
                 'error' => $e->getMessage(),
@@ -96,109 +66,128 @@ class OrderService
         }
     }
 
-    public static function updateOrder(OrderRequest $request, Order $order){
-        try {
-            DB::beginTransaction();
+    public static function updateOrder(OrderRequest $request, Order $order)
+    {
+            try {
+                DB::beginTransaction();
 
-            // Récupération des données validées
-            $validated = $request->validated();
+                $validated = $request->validated();
 
-            // Mettre à jour les champs spécifiques de la commande
-            $order->update(array_filter([
-                'customer_id' => $validated['customer'] ?? null,
-                'currency_id' => $validated['currency'] ?? null,
-                'account_id' => $validated['account'] ?? null,
-                'merchant_id' => $validated['merchant'] ?? null,
-                'coupon_id' => $validated['coupon'] ?? null,
-                'delivery_id' => $validated['delivery'] ?? null,
-                'order_amount' => $validated['order_amount'] ?? null,
-                'total_amount_order' => $validated['total_amount_order'] ?? null,
-                'reference_order' => $validated['reference_order'] ?? null,
-                'secure_key' => $validated['secure_key'] ?? null,
-                'has_delivery' => $validated['has_delivery'] ?? null,
-                'balance' => $validated['balance'] ?? null,
-                'total_discount' => $validated['total_discount'] ?? null,
-            ]));
+                // Update core order information
+                $order->fill(array_filter([
+                    'customer_id' => $validated['customer'] ?? null,
+                    'currency_id' => $validated['currency'] ?? null,
+                    'account_id' => $validated['account'] ?? null,
+                    'merchant_id' => $validated['merchant'] ?? null,
+                    'coupon_id' => $validated['coupon'] ?? null,
+                    'delivery_id' => $validated['delivery'] ?? null,
+                    'reference_order' => $validated['reference_order'] ?? null,
+                    'secure_key' => $validated['secure_key'] ?? null,
+                    'has_delivery' => $validated['has_delivery'] ?? null,
+                ]));
 
-            // Vérifier et mettre à jour les produits associés si fournis
-            if (isset($validated['order_products'])) {
-                foreach ($validated['order_products'] as $product) {
-                    $productModel = Product::find($product['id']);
-
-                    // Vérifier la présence de déclinaisons et de livraisons, et valider leur existence
-                    self::checkDeclination($productModel, $product);
-                    self::checkDelivery($productModel, $product);
-
-                    // Vérifier si l'association existe déjà ou doit être créée
-                    $existingOrderProduct = $order->orderProducts()->where('product_id', $product['id'])->first();
-
-                    if ($existingOrderProduct) {
-                        // Mettre à jour l'association existante
-                        $existingOrderProduct->update([
-                            'quantity' => $product['quantity'] ?? $existingOrderProduct->quantity,
-                            'sub_totals' => OrderCalculatorService::calculateSubtotal([
-                                "product" => $productModel ?? $existingOrderProduct->product,
-                                "declination_id" => $product['declination'] ?? $existingOrderProduct->declination_id,
-                                'delivery_id' => $product['delivery'] ?? $existingOrderProduct->delivery_id,
-                                'currency_id' => $validated['currency'] ?? $order->currency->id,
-                                "quantity" => $product['quantity'] ?? $existingOrderProduct->quantity,
-                            ]) ?? $existingOrderProduct->sub_totals,                            
-                            'discount' => $product['discount'] ?? $existingOrderProduct->discount,
-                            'declination_id' => $product['declination'] ?? $existingOrderProduct->declination_id,
-                            'delivery_id' => $product['delivery'] ?? $existingOrderProduct->delivery_id,
-                        ]);
-                    } else {
-                        // Créer une nouvelle association
-                        $order->orderProducts()->create([
-                            'product_id' => Product::find($product['id'])->id,
-                            'quantity' => $product['quantity'],
-                            'sub_totals' => $product['sub_totals'] ?? OrderCalculatorService::calculateSubtotal([
-                                "product" => $productModel->id,
-                                "declination_id" => $product['declination'],
-                                'delivery_id' => $product['delivery'],
-                                'currency_id' => $validated['currency']
-                            ]),  
-                            'discount' => $product['discount'] ?? 0,
-                            'declination_id' => $product['declination'] ?? null,
-                            'delivery_id' => $product['delivery'] ?? null,
-                        ]);
-                    }
-
-                    $total = OrderCalculatorService::calculateTotal(
-                        $validated['order_products'],
-                        $validated['currency'],
-                        $validated['delivery_cost'] ?? 0,
-                        $validated['coupon_code'] ?? ""
-                    );
-                    
-                    if($validated["order_amount"] > $total){
-                        throw new \Exception("The amount is greather than total");
-                    }
-                    // Mettre à jour le total
-                    $order->update(['total_amount_order' => $total, 'balance' => $total - $validated["order_amount"]]);
+                // Process order products
+                if (isset($validated['order_products'])) {
+                    self::syncOrderProducts($order, $validated);
                 }
+
+                // Calculate and update total order amount
+                self::updateOrderTotal($order, $validated);
+
+                $order->save();
+
+                DB::commit();
+
+                return [
+                    'message' => 'Order updated successfully',
+                    'order' => new OrderResource($order),
+                    'code' => 200
+                ];
+            } catch (\Exception $e) {
+                DB::rollBack();
+
+                return [
+                    'message' => 'Error updating order',
+                    'error' => $e->getMessage(),
+                    'code' => 500
+                ];
+            }
+        }
+
+        private static function syncOrderProducts(Order $order, array $validated)
+        {
+            $productIds = collect($validated['order_products'])->pluck('id');
+            
+            // Remove products not in the current update
+            $order->orderProducts()
+                ->whereNotIn('product_id', $productIds)
+                ->delete();
+
+            foreach ($validated['order_products'] as $productData) {
+                self::processOrderProduct($order, $productData, $validated);
+            }
+        }
+
+        private static function processOrderProduct(Order $order, array $productData, array $validated)
+        {
+            $product = Product::findOrFail($productData['id']);
+
+            self::checkDeclination($product, $productData);
+            self::checkDelivery($product, $productData);
+            
+            self::validateProductAvailability($product, $productData);
+            self::reduceStock($product, $productData['quantity']);
+
+            $orderProduct = $order->orderProducts()->updateOrCreate(
+                ['product_id' => $product->id],
+                [
+                    'quantity' => $productData['quantity'],
+                    'sub_totals' => OrderCalculatorService::calculateSubtotal([
+                        'product' => $product,
+                        'declination_id' => $productData['declination'] ?? null,
+                        'delivery_id' => $productData['delivery'] ?? null,
+                        'currency_id' => $validated['currency'],
+                        'quantity' => $productData['quantity']
+                    ]),
+                    'discount' => $productData['discount'] ?? 0,
+                    'declination_id' => $productData['declination'] ?? null,
+                    'delivery_id' => $productData['delivery'] ?? null,
+                ]
+            );
+        }
+
+        private static function updateOrderTotal(Order $order, array $validated)
+        {
+            $orderProducts = $order->orderProducts;
+
+            $total = OrderCalculatorService::calculateTotal(
+                $orderProducts->map(fn($product) => [
+                    'id' => $product->product_id,
+                    'quantity' => $product->quantity,
+                    'declination' => $product->declination_id,
+                    'delivery' => $product->delivery_id,
+                    'discount' => $product->discount,
+                ])->toArray(),
+                $validated['currency'],
+                $validated['delivery_cost'] ?? 0,
+                $validated['coupon_code'] ?? ""
+            );
+
+            if ($validated["order_amount"] > $total) {
+                throw new \Exception("Order amount exceeds total");
             }
 
-            DB::commit();
-
-            // Retourner une réponse de succès
-            return[
-                'message' => 'Commande mise à jour avec succès.',
-                'order' => new OrderResource($order),
-                'code' => 200
-            ];
-        } catch (\Exception $e) {
-            // Annuler toutes les modifications en cas d'erreur
-            DB::rollBack();
-
-            return [
-                'message' => 'Une erreur est survenue lors de la mise à jour de la commande.',
-                'error' => $e->getMessage(),
-                'code' => 500
-            ];
-        }
+            $order->total_amount_order = $total;
+            $order->balance = $total - $validated["order_amount"];
     }
 
+    public static function showState(Order $order){
+        return $order->getAvailableStates();
+    }
+
+    public static function changeState(){
+            
+    }
 
     /**
      * Vérifier les déclinaisons du produit.
@@ -231,8 +220,8 @@ class OrderService
      */
     private static function checkDelivery($productModel, $product)
     {
-        if (self::hasDelivery($productModel)) {
-            if (empty($product['delivery'])) {
+        if (self::hasDelivery($productModel)) {            
+            if (!isset($product['delivery']) || empty($product['delivery'])) {
                 throw new \Exception("Le produit ID {$product['id']} nécessite une livraison, mais aucune livraison n'a été fournie.");
             }
 
@@ -241,6 +230,39 @@ class OrderService
             }
         } elseif (!empty($product['delivery'])) {
             throw new \Exception("Le produit ID {$product['id']} ne nécessite pas de livraison, mais une 'delivery' a été fournie.");
+        }
+    }
+
+    private static function validateProductAvailability(Product $product, array $productData)
+    {
+        // Utiliser la méthode isAvailable() du modèle
+        if (!$product->isAvailable()) {
+            throw new \Exception("Le produit {$product->name} n'est pas disponible à la vente.");
+        }
+
+        // Vérification de la quantité commandée
+        if (!$product->has_unlimited_stock) {
+            // Si stock limité, vérifier que la quantité commandée ne dépasse pas le stock
+            if ($productData['quantity'] > $product->stock_quantity) {
+                throw new \Exception("Quantité insuffisante en stock pour le produit {$product->name}. 
+                    Stock disponible : {$product->stock_quantity}");
+            }
+        }
+    }
+
+    private static function reduceStock(Product $product, int $quantity)
+    {
+        // Vérifier si le stock est géré (pas illimité)
+        if (!$product->has_unlimited_stock) {
+            // Réduire le stock
+            $product->decrement('stock_quantity', $quantity);
+
+            // Optionnel : Mettre à jour le statut si le stock atteint zéro
+            if ($product->stock_quantity === 0) {
+                $product->update([
+                    'is_in_stock' => false
+                ]);
+            }
         }
     }
 

@@ -96,7 +96,7 @@ class OrderProductResource
                                 if($product != null && Product::hasDeclinations(Product::find($get('product_id')))){
                                     self::updateFieldsDeclination($product, $set, $get, $record);
                                 }
-                                self::updateSubTotal($get, $set);
+                                // self::updateSubTotal($get, $set);
                             }),
                         TextInput::make("quantity")
                             ->numeric()
@@ -115,13 +115,13 @@ class OrderProductResource
                             ->default(0),
                         TextInput::make("sub_totals")
                             ->numeric()
-                            ->disabled()
+                            // ->disabled()
                             ->hint(function(callable $get, Set $set){
                                 if($product = Product::find($get('product_id'))){
                                     return "{$product->currency->symbol} ". self::updateSubTotal($get, $set);
                                 }
                             })
-                            ->dehydrated(true)
+                            // ->dehydrated(true)
                             ->reactive()
                             ->prefix(fn(callable $get) => $get("prefix_field") ?: Currency::where("id", $get("../../currency_id"))->first()->symbol)
                             ->default(0)
