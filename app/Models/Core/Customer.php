@@ -10,9 +10,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
+use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Customer extends Model
+class Customer extends Model implements HasMedia
 {
     use HasFactory, 
         Notifiable, 
@@ -51,8 +52,8 @@ class Customer extends Model
         $address = $this->addressCustomers?->first()?->address;
         return $address?->getFullAddressAttribute();
     }
-    public function order(){
-        return $this->belongsToMany(Order::class);
+    public function orders(){
+        return $this->hasMany(Order::class);
     }
 
     public function addressCustomers() : HasMany{

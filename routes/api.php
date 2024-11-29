@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\JWTMiddleware;
 use App\Http\Controllers\Api\Core\AuthController;
 use App\Http\Controllers\Api\Core\AccountController;
+use App\Http\Controllers\Api\Core\CustomerController;
 use App\Http\Controllers\Api\Core\OrderController;
 use App\Http\Controllers\Api\Core\ProductController;
 
@@ -24,6 +25,7 @@ use App\Http\Controllers\Api\Core\ProductController;
 
 Route::apiResource("products", ProductController::class);
 Route::apiResource("orders", OrderController::class);
+Route::apiResource("customers", CustomerController::class);
 Route::get("order-state/{order}", [OrderController::class, 'showState'])->name("order-show-state");
 Route::post("order-state/{order}", [OrderController::class, 'changeState'])->name("order-change-state");
 
