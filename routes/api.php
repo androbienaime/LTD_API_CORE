@@ -4,10 +4,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\JWTMiddleware;
 use App\Http\Controllers\Api\Core\AuthController;
-use App\Http\Controllers\Api\Core\AccountController;
-use App\Http\Controllers\Api\Core\CustomerController;
+use App\Http\Controllers\Api\Core\ShopController;
 use App\Http\Controllers\Api\Core\OrderController;
+use App\Http\Controllers\Api\Core\AccountController;
 use App\Http\Controllers\Api\Core\ProductController;
+use App\Http\Controllers\Api\Core\CustomerController;
+use App\Http\Controllers\Api\Location\CityController;
+use App\Http\Controllers\Api\Location\StateController;
+use App\Http\Controllers\Api\Location\CountryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,8 +30,19 @@ use App\Http\Controllers\Api\Core\ProductController;
 Route::apiResource("products", ProductController::class);
 Route::apiResource("orders", OrderController::class);
 Route::apiResource("customers", CustomerController::class);
+Route::apiResource("shops", ShopController::class);
+
 Route::get("order-state/{order}", [OrderController::class, 'showState'])->name("order-show-state");
 Route::post("order-state/{order}", [OrderController::class, 'changeState'])->name("order-change-state");
+
+
+Route::apiResource('countries', CountryController::class);
+Route::apiResource('states', StateController::class);
+Route::apiResource('cities', CityController::class);
+
+// Filtres et recherches
+Route::get('states/by-country/{country}', [StateController::class, 'getStatesByCountry']);
+Route::get('cities/by-state/{state}', [CityController::class, 'getCitiesByState']);
 
 Route::prefix('account')->group(function () {
     Route::post('register', [AccountController::class, 'register']);
@@ -39,6 +54,7 @@ Route::prefix('account')->group(function () {
         Route::post('logout', [AccountController::class, 'logout']);
     });
 });
+
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });

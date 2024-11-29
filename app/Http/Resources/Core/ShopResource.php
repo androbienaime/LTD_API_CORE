@@ -18,7 +18,8 @@ class ShopResource extends JsonResource
             "name" => $this->name,
             "slug" => $this->slug,
             "description" => $this->shop_description,
-            "address" => new AddressResource($this->whenLoaded("addresses"))
+            "address" => new AddressResource($this->whenLoaded("addresses")),
+            "accounts" => AccountResource::collection($this->whenLoaded("account"))
         ];
     }
 }
