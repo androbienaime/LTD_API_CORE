@@ -2,9 +2,10 @@
 
 namespace App\Observers;
 
-use App\Core\States\Order\Exception\OrderTransitionException;
-use App\Core\States\Order\PendingState;
 use App\Models\Core\Order;
+use Illuminate\Support\Str;
+use App\Core\States\Order\PendingState;
+use App\Core\States\Order\Exception\OrderTransitionException;
 
 class OrderObserver extends BaseObserver
 {
@@ -23,6 +24,10 @@ class OrderObserver extends BaseObserver
      */
     public function creating(Order $order): void
     {
+        if (empty($order->id)) {
+            $order->id = (string) Str::uuid(); // Générer un UUID
+        }
+
         $this->setCommonFields($order);
 
         if($order->order_amount > 0){

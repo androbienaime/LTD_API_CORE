@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Spatie\MediaLibrary\MediaCollections\Models\Concerns\HasUuid;
 use Spatie\ModelStates\HasStates;
 use Spatie\ModelStates\State;
 use Spatie\ModelStates\Transition;
@@ -30,6 +31,9 @@ use Spatie\ModelStates\Transition;
 class Order extends Model
 {
     use HasFactory, AccountGlobalScopeTrait, HasStates;
+
+    public $incrementing = false; // Désactiver l'auto-incrémentation
+    protected $keyType = 'string'; // Indiquer que la clé est une chaîne
 
     protected static string $tableName = "orders";
 

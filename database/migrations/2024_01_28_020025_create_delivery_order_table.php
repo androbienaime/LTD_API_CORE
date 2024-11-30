@@ -14,8 +14,11 @@ return new class extends Migration
         Schema::create('delivery_order', function (Blueprint $table) {
             $table->id();
             $table->foreignId("delivery_id")->nullable()->constrained()->cascadeOnDelete();
-            $table->foreignId("order_id")->nullable()->constrained()->cascadeOnDelete();
+            $table->uuid("order_id");
             $table->timestamps();
+
+            $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
+
         });
     }
 

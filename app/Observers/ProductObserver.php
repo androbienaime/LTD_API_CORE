@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use Illuminate\Support\Str;
 use App\Models\Core\Product;
 
 class ProductObserver extends BaseObserver
@@ -11,6 +12,7 @@ class ProductObserver extends BaseObserver
      */
     public function creating(Product $product): void
     {
+
         $this->setCommonFields($product);
     }
 
