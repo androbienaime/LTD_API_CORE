@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Location\Country;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Location\CountryResource;
+use Exception;
 
 class CountryController extends Controller
 {
@@ -70,5 +71,21 @@ class CountryController extends Controller
         $country->delete();
 
         return response()->json(['message' => 'Country deleted successfully.']);
+    }
+
+    public function getCountryByCode(string $code){
+        try{
+            $country = Country::where("code", $code)->first();
+            if(!$country){
+                throw new Exception("Erreur iso code incorrect");
+            }
+
+            return $this->show($country);
+        }catch(Exception $e){
+            return response()->json([
+                "success" => false,
+                "message" => $e->getMessage()
+            ]);
+        }
     }
 }

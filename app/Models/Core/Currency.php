@@ -16,7 +16,8 @@ class Currency extends Model
         "name",
         "symbol",
         "iso_code",
-        "exchange_rate"
+        "exchange_rate",
+        "is_active"
     ];
 
     protected $casts = [
