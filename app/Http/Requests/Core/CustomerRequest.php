@@ -22,8 +22,8 @@ class CustomerRequest extends FormRequest
      */
     public function rules(): array
     {
-                // Différencie les règles pour store et update
-                return $this->isMethod('post') ? $this->storeRules() : $this->updateRules();
+            // Différencie les règles pour store et update
+            return $this->isMethod('post') ? $this->storeRules() : $this->updateRules();
     }
 
     /**

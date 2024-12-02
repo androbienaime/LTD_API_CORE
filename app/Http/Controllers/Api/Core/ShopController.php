@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Api\Core;
 
+use Exception;
+use App\Models\Core\Shop;
+use App\Models\Core\Account;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Core\ShopRequest;
 use App\Http\Resources\Core\ShopResource;
-use App\Models\Core\Shop;
-use Illuminate\Http\Request;
 
 class ShopController extends Controller
 {
@@ -33,14 +36,38 @@ class ShopController extends Controller
     public function store(ShopRequest $request)
     {
         $validated = $request->validated();
+        $account = Account::find($validated['account_id']);
 
-        $shop = Shop::create($validated);
-        $shop->account()->sync($validated['account_ids']);
+        try{
 
-        return response()->json([
-            'message' => 'Shop created successfully.',
-            'data' => new ShopResource($shop->load(['account', 'address', 'categories'])),
-        ], 201);
+            DB::beginTransaction();
+
+            if(!$account){
+                throw new Exception("Account not found");
+            }else{
+                if(!Shop::isAccountEligible($account)){
+                    throw new Exception("Your account is not eligible for create a shop");
+                }
+            }
+            $shop = Shop::create($validated);
+            $shop->account()->sync($validated['account_id']);
+
+            DB::commit();
+
+            return response()->json([
+                "success" => true,
+                'message' => 'Shop created successfully.',
+                'data' => new ShopResource($shop->load(['account', 'address', 'categories'])),
+            ], 201);
+
+        }catch(Exception $e){
+            DB::rollback();
+            
+            return response()->json([
+                "success" => false, 
+                "message" => $e->getMessage()
+            ]);
+        }
     }
 
     /**
@@ -62,9 +89,55 @@ class ShopController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(ShopRequest $request, Shop $shop)
     {
-        //
+        $validated = $request->validated();
+
+        try{
+
+            DB::beginTransaction();
+
+            // if(isset($validated['account_id'])){
+            //     $account = Account::find($validated['account_id']);
+
+            //     if(!$account){
+            //         throw new Exception("Account not found");
+            //     }else{
+            //         if(!Shop::isAccountEligible($account)){
+            //             throw new Exception("Your account is not eligible for create a shop");
+            //         }
+            //     }
+
+            //     $shop->account()->sync($validated['account_id']);
+            // }            
+            
+            $shop->update([
+                "name" => $validated["name"] ?? $shop->name,
+                "reference" => $validated["reference"] ?? $shop->reference,
+                "theme_name" => $validated["theme_name"] ?? $shop->theme_name,
+                "theme_color" => $validated["theme_color"] ?? $shop->theme_color,
+                "status" => $validated["status"] ?? $shop->status,
+                "slug" => $validated["slug"] ?? $shop->slug,
+                "shop_description" => $validated["shop_description"] ?? $shop->shop_description
+            ]);
+
+
+            DB::commit();
+
+            return response()->json([
+                "success" => true,
+                'message' => 'Shop update successfully.',
+                'data' => new ShopResource($shop->load(['account', 'address', 'categories'])),
+            ], 201);
+
+        }catch(Exception $e){
+            DB::rollBack();
+
+            return response()->json([
+                "success" => false, 
+                "message" => $e->getMessage()
+            ]);
+        }
     }
 
     /**

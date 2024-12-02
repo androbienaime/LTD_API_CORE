@@ -144,4 +144,8 @@ class Shop extends Model implements HasMedia, HasName
     public function accounts() : BelongsToMany{
         return $this->belongsToMany(Account::class);
     }
+
+    public static function isAccountEligible(Account $account){
+        return true;
+    }
 }

@@ -21,6 +21,11 @@ class ShopRequest extends FormRequest
      */
     public function rules(): array
     {
+         // Différencie les règles pour store et update
+         return $this->isMethod('post') ? $this->storeRules() : $this->updateRules();
+    }
+
+    public function storeRules(){
         return [
             'name' => 'required|string|max:255',
             'reference' => 'nullable|string|max:255',
@@ -31,8 +36,23 @@ class ShopRequest extends FormRequest
             'address_id' => 'nullable|exists:addresses,id',
             'ltsp_seo_id' => 'nullable',
             'slug' => 'required|string|unique:shops,slug',
-            'account_ids' => 'required|array|min:1',
-            'account_ids.*' => 'exists:accounts,id',
+            'account_id' => 'required|exists:accounts,id',
+        ];
+    }
+
+    public function updateRules(){
+        
+        return [
+            'name' => 'sometimes|string|max:255',
+            'reference' => 'nullable|string|max:255',
+            'theme_name' => 'nullable|string|max:255',
+            'theme_color' => 'nullable|string|max:7', // Exemple : #FFFFFF
+            'types' => 'nullable|array',
+            'shop_description' => 'nullable|string',
+            'address_id' => 'nullable|exists:addresses,id',
+            'ltsp_seo_id' => 'nullable',
+            'slug' => 'sometimes|string|unique:shops,slug',
+            'account_id' => 'sometimes|exists:accounts,id',
         ];
     }
 }
