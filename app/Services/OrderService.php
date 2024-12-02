@@ -10,6 +10,7 @@ use App\Core\Trait\ProductTrait;
 use Illuminate\Support\Facades\DB;
 use App\Http\Requests\Core\OrderRequest;
 use App\Http\Resources\Core\OrderResource;
+use App\Models\Core\Delivery;
 use Illuminate\Validation\ValidationException;
 
 class OrderService
@@ -317,6 +318,117 @@ class OrderService
                 ]);
             }
         }
+    }
+
+    public  static function calculateSubTotalLive(Request $request){
+           $validated =  $request->validate([
+                'product' => 'required|exists:products,slug',
+                'delivery_id' => 'nullable|exists:deliveries,id',
+                'declination_id' => 'nullable|exists:declinations,id',
+                'currency_id' => 'required|string|exists:currencies,id',
+                "quantity" => "required|integer|min:1"
+            ]);
+
+            try{
+                $product = Product::findBySlug($validated["product"]);
+
+                // Their rules for know if product is valid
+                self::rulesLiveTotal($product, 
+                    [
+                        "id" => $product->id,
+                        "declination_id" => $validated["declination_id"] ?? null,
+                        "delivery_id" => $validated["delivery_id"] ?? null,
+                        "quantity" => $validated["quantity"]
+                    ]
+                );
+
+                return [
+                    "success" => true,
+                    "data" => OrderCalculatorService::calculateSubtotal([
+                        "product" => $product,
+                        "delivery_id" => $validated["delivery_id"] ?? null,
+                        "declination_id" => $validated["declination_id"] ?? null,
+                        "currency_id" => $validated["currency_id"],
+                        "quantity" => $validated["quantity"]
+                    ]),
+                    "code" => 202
+                ];
+            }catch(Exception $e){
+                return [
+                    "success" => false,
+                    "message" => $e->getMessage(),
+                    "code" => 500
+                ];
+            }
+    }
+
+    public static function calculateTotalLive(Request $request){
+            $validated = $request->validate([
+                'order_products' => 'required|array',
+                'order_products.*.price' => 'numeric|min:0',
+                'order_products.*.product' => 'required|exists:products,slug',
+                'order_products.*.delivery_id' => 'nullable|exists:deliveries,id',
+                'order_products.*.declination_id' => 'nullable|exists:declinations,id',
+                "order_products.*.quantity" => "required|integer|min:1",
+                'currency_id' => 'required|exists:currencies,id',
+                'delivery_id' => 'nullable|exists:deliveries,id',
+                'coupon' => 'nullable|string|exists:coupons,code'
+            ]);
+
+        try{
+            foreach ($validated['order_products'] as $productData) {
+                $product = Product::findBySlug($productData['product']);
+
+                // Their rules for know if product is valid
+                self::rulesLiveTotal($product, $productData);
+            }
+            
+            $total =  OrderCalculatorService::calculateTotal(
+                collect($validated["order_products"])->map(function($product){
+                    return [
+                        'id' => Product::findBySlug($product["product"])->id,
+                        'quantity' => $product["quantity"],
+                        'declination' => $product["declination_id"] ?? null,
+                        'delivery' => $product["delivery_id"] ?? null,
+                        'discount' => $product["discount"] ?? null,
+                    ];
+                })->toArray(),
+                $validated['currency_id'], 
+                0,
+                $validated['coupon'] ?? ""
+            );
+
+        return [
+            "success" => true,
+            "data" => $total,
+            "code" => 202
+        ];
+        }catch(Exception $e){
+            return [
+                "success" => false,
+                "message" => $e->getMessage(),
+                "code" => 500
+            ];
+        }
+    }
+    
+
+    private static function rulesLiveTotal(Product $product, array $productData){
+        if(isset($productData["declination_id"])){
+            self::checkDeclination($product, [
+                "id" => $product->id, 
+                "declination_id" => $productData["declination_id"]
+            ]);
+        }
+        
+        if(isset($productData["delivery_id"])){
+            self::checkDelivery($product, [
+                        "id" => $product->id, 
+                        "delivery" => $productData["delivery_id"]
+                    ]);
+        }
+    
+        self::validateProductAvailability($product, $productData);
     }
 
 }

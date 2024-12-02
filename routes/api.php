@@ -36,6 +36,9 @@ Route::apiResource("shops", ShopController::class);
 Route::get("order-state/{order}", [OrderController::class, 'showState'])->name("order-show-state");
 Route::post("order-state/{order}", [OrderController::class, 'changeState'])->name("order-change-state");
 
+Route::post("orders/calculate-sub-total-live", [OrderController::class, "calculateSubTotalLive"]);
+Route::post("orders/calculate-total-live", [OrderController::class, "calculateTotalLive"]);
+
 Route::apiResource("currencies", CurrencyController::class)->only(["show", "index"]);
 Route::get("currency/by-iso-code/{code}", [CurrencyController::class, 'getCurrencyByCode'])->name("currency-by-code.show");
 

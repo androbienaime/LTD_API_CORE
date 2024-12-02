@@ -104,5 +104,14 @@ class OrderController extends Controller
         return response()->json(OrderService::changeState($order, $request));
     }
 
+    public function calculateSubTotalLive(Request $request){
+        $subTotal = OrderService::calculateSubTotalLive($request);
+        return response()->json($subTotal, $subTotal["code"]);
+    }
+
+    public function calculateTotalLive(Request $request){
+        $total = OrderService::calculateTotalLive($request);
+        return response()->json($total, $total["code"]);
+    }
 
 }
