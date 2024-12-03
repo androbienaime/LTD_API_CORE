@@ -89,7 +89,7 @@ class OrderRequest extends FormRequest
         }
 
         // Validation pour les produits associés
-        $rules['order_products'] = 'array';
+        $rules['order_products'] = 'array|required';
         $rules['order_products.*.id'] = 'required|exists:products,id';
         $rules['order_products.*.quantity'] = 'required|integer|min:1';
         $rules['order_products.*.sub_totals'] = 'required|numeric|min:0';

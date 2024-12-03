@@ -32,7 +32,8 @@ class ProductResource extends JsonResource
             "currency" => $this->currency,
             "categories" => CategoryResource::collection(($this->whenLoaded('categories'))),
             "brands" => BrandResource::collection(($this->whenLoaded('brands'))),
-            "discount" => new ProductDiscountResource($this->productDiscount)
+            "discount" => new ProductDiscountResource($this->productDiscount),
+            "seo" => $this->ltspSeo
         ];
 
         

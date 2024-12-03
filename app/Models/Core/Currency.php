@@ -29,4 +29,12 @@ class Currency extends Model
         return $this->hasMany(CurrencyRate::class);
     }
 
+    public static function findByIsoCode(string $iso_code){
+        if(!Currency::where("iso_code", $iso_code)->first()){
+            return null;
+        }
+
+        return Currency::where("iso_code", $iso_code)->first();
+    }
+
 }
