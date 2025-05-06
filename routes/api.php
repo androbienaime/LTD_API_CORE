@@ -7,12 +7,14 @@ use App\Http\Controllers\Api\Core\AuthController;
 use App\Http\Controllers\Api\Core\ShopController;
 use App\Http\Controllers\Api\Core\OrderController;
 use App\Http\Controllers\Api\Core\AccountController;
+use App\Http\Controllers\Api\Core\CategoryController;
 use App\Http\Controllers\Api\Core\CurrencyController;
 use App\Http\Controllers\Api\Core\ProductController;
 use App\Http\Controllers\Api\Core\CustomerController;
 use App\Http\Controllers\Api\Location\CityController;
 use App\Http\Controllers\Api\Location\StateController;
 use App\Http\Controllers\Api\Location\CountryController;
+use App\Models\Core\Category;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,13 +27,12 @@ use App\Http\Controllers\Api\Location\CountryController;
 |
 */
 
-// Route::get("products/list", [ProductController::class, 'index']);
-// Route::post("product/create", [ProductController::class, 'create']);
-
 Route::apiResource("products", ProductController::class);
 Route::apiResource("orders", OrderController::class);
 Route::apiResource("customers", CustomerController::class);
 Route::apiResource("shops", ShopController::class);
+Route::apiResource("categories", CategoryController::class);
+
 
 Route::get("order-state/{order}", [OrderController::class, 'showState'])->name("order-show-state");
 Route::post("order-state/{order}", [OrderController::class, 'changeState'])->name("order-change-state");

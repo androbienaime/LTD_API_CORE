@@ -12,12 +12,13 @@ import { useDispatch } from "react-redux";
 const ProductCard = ({ product }) =>{
     const dispatch = useDispatch();
     const name = product.name;
-    const id = product.id;
-    const idString = (id) =>{
-        return String(id).toLowerCase().split(" ").join("");
-    }
+    // const id = product.slug;
+    // const idString = (id) =>{
+    //     return String(id).toLowerCase().split(" ").join("");
+    // }
 
-    const rootId = idString(id);
+    // const rootId = idString(id);
+    const rootId = product.slug;
     const [wishList, setWishList] = useState([]);
     const navigate = useNavigate();
     const handleProductDetails = () =>{
@@ -38,7 +39,7 @@ const ProductCard = ({ product }) =>{
         <div
             data-aos="zoom-in" 
             data-aos-delay = {product.aosDelay} 
-            key={product.id}
+            key={product.slug}
            
             className="relative group flex w-full max-w-xs flex-col overflow-hidden rounded-lg border border-gray-100 bg-white shadow-md">
             
@@ -120,11 +121,11 @@ const ProductCard = ({ product }) =>{
                     onClick={() => 
                         dispatch(
                             addToCart({
-                               id: product.id,
+                               slug: product.slug,
                                name: product.name,
                                quantity: 1,
                                price: product.price,
-                               image: product.coverImage
+                               image: product.coverImage,
                             })
                         )
                     } 

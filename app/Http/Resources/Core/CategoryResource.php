@@ -18,7 +18,12 @@ class CategoryResource extends JsonResource
         return [
             "id" => $this->id,
             "name" => $this->name,
-            "parent" => $this->parent_id
+            "parent" => $this->parent_id,
+            "coverImage" => $this->getFirstMedia() ? $this->getFirstMedia()->getFullUrl("thumb") : null,
+            'images' => $this->getMedia()->map(function($media){
+                // return $media->id."/".$media->file_name;
+                return $media->getFullUrl();
+            }),
         ];
     }
 }

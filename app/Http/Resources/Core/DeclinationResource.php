@@ -22,7 +22,7 @@ class DeclinationResource extends JsonResource
             "quantity" => $this->quantity,
             "declination_images" => $this->getMedia()->map(function($media){
                 // return $media->id."/".$media->file_name;
-                return $media->getUrl();
+                return $media->getFullUrl();
             }), 
             "values" => ValueResource::collection($this->values)
         ];

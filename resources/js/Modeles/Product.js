@@ -1,7 +1,8 @@
 class Product{
-    constructor(id, name, description, price, coverImage, images){
+    constructor(id, name, slug, description, price, coverImage, images){
         this.id = id;
         this.name = name;
+        this.slug = slug;
         this.description = description;
         this.price = price;
         this.coverImage = coverImage;
@@ -12,6 +13,7 @@ class Product{
         return new Product(
             response.id,
             response.name,
+            response.slug,
             response.description,
             response.price,
             response.coverImage,

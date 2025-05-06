@@ -16,7 +16,7 @@ class BrandResource extends JsonResource
     {
         return [
             "name" => $this->name,
-            "logo" => $this->getFirstMedia() ? $this->getFirstMedia()->getUrl("thumb") : null,
+            "logo" => $this->getFirstMedia() ? $this->getFirstMedia()->getFullUrl("thumb") : null,
 
         ];
     }

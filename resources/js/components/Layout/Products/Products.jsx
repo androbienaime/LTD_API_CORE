@@ -7,49 +7,49 @@ import Image5 from "../../../assets/products/5.jpeg";
 import Image6 from "../../../assets/products/6.jpeg";
 import Image7 from "../../../assets/products/7.jpeg";
 import { FaStar } from "react-icons/fa";
-const ProductsData = [
-    {
-        id: 1,
-        img : Image1,
-        title : "Sneakers",
-        rating: "5.0",
-        author : "John",
-        aosDelay: "0"
-    },
-    {
-        id: 2,
-        img : Image2,
-        title : "Sneakers",
-        rating: "5.0",
-        author : "John",
-        aosDelay: "200"
-    },
-    {
-        id: 3,
-        img : Image3,
-        title : "Sneakers",
-        rating: "5.0",
-        author : "John",
-        aosDelay: "400"
-    },
-    {
-        id: 4,
-        img : Image4,
-        title : "Sneakers",
-        rating: "5.0",
-        author : "John",
-        aosDelay: "600"
-    },
-    {
-        id: 5,
-        img : Image5,
-        title : "Sneakers",
-        rating: "5.0",
-        author : "John",
-        aosDelay: "800"
-    },
+// const ProductsData = [
+//     {
+//         id: 1,
+//         img : Image1,
+//         title : "Sneakers",
+//         rating: "5.0",
+//         author : "John",
+//         aosDelay: "0"
+//     },
+//     {
+//         id: 2,
+//         img : Image2,
+//         title : "Sneakers",
+//         rating: "5.0",
+//         author : "John",
+//         aosDelay: "200"
+//     },
+//     {
+//         id: 3,
+//         img : Image3,
+//         title : "Sneakers",
+//         rating: "5.0",
+//         author : "John",
+//         aosDelay: "400"
+//     },
+//     {
+//         id: 4,
+//         img : Image4,
+//         title : "Sneakers",
+//         rating: "5.0",
+//         author : "John",
+//         aosDelay: "600"
+//     },
+//     {
+//         id: 5,
+//         img : Image5,
+//         title : "Sneakers",
+//         rating: "5.0",
+//         author : "John",
+//         aosDelay: "800"
+//     },
   
-];
+// ];
 const Products = () =>{
     return (
         <div className="mt-14 mb-12">

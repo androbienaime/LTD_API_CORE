@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Core;
 
-use App\Core\ResourceModules\HasResourceStatus;
 use Filament\Forms;
 use Filament\Tables;
 use Filament\Forms\Get;
@@ -15,8 +14,11 @@ use Filament\Resources\Resource;
 use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
+use App\Core\ResourceModules\HasResourceStatus;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\Core\CategoryResource\Pages;
+use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use App\Filament\Resources\Core\CategoryResource\RelationManagers;
 
 class CategoryResource extends Resource
@@ -57,6 +59,17 @@ class CategoryResource extends Resource
                     ->options(function() : array{
                         return Category::all()->pluck("name", "id")->all();
                 }),
+                SpatieMediaLibraryFileUpload::make('category_images')
+                ->multiple()
+                ->required()
+                ->reorderable()
+                ->imageEditor()
+                ->image()
+                ->responsiveImages()
+                ->conversion('thumb')
+                ->optimize('webp')
+                ->imagePreviewHeight(150)
+                ,
                 self::FormStatus()
             ]);
     }
@@ -67,6 +80,13 @@ class CategoryResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
+                SpatieMediaLibraryImageColumn::make('category_images')
+                    ->label(__("Image"))
+                    ->circular()
+                    ->stacked()
+                    ->limit(4)
+                    ->limitedRemainingText()
+                    ->conversion('thumb'),
                 Tables\Columns\TextColumn::make('slug')
                     ->searchable(),
                 TextColumn::make('parent.name')

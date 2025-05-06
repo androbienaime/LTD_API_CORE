@@ -22,10 +22,9 @@ class ProductResource extends JsonResource
             "article" => $this->article,
             "description" => $this->description,
             "price" => $this->price,
-            "coverImage" => $this->getFirstMedia() ? $this->getFirstMedia()->getUrl("thumb") : null,
+            "coverImage" => $this->getFirstMedia() ? $this->getFirstMedia()->getFullUrl("thumb") : null,
             'images' => $this->getMedia()->map(function($media){
-                // return $media->id."/".$media->file_name;
-                return $media->getUrl();
+                return $media->getFullUrl();
             }),
             "declination" => Product::hasDeclinations($this->resource) ? DeclinationResource::collection($this->declinations) : null,
             "shop" => new ShopResource($this->shop),

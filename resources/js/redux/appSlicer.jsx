@@ -14,8 +14,9 @@ export const appSlicer = createSlice({
     reducers : {
         addToCart : (state, action) =>{
             const item = state.products.find(
-                (item) => item.id === action.payload.id
+                (item) => item.slug === action.payload.slug
             );
+            // console.log(item.slug );
 
             if(item){
                 item.quantity += action.payload.quantity;
@@ -27,9 +28,8 @@ export const appSlicer = createSlice({
         },
         increaseQuantity : (state, action) =>{
             const item = state.products.find(
-                (item) => item.id === action.payload.id
+                (item) => item.slug === action.payload.slug
             );
-            console.log(item);
             
             if(item){
                 item.quantity++;
@@ -37,7 +37,7 @@ export const appSlicer = createSlice({
         },
         decreaseQuantity : (state, action) =>{
             const item = state.products.find(
-                (item) => item.id === action.payload.id
+                (item) => item.slug === action.payload.slug
             );
             
             if(item.quantity == 1 ){
@@ -48,7 +48,7 @@ export const appSlicer = createSlice({
         },
         deleteItem: (state, action) => {
             state.products = state.products.filter(
-              (item) => item.id !== action.payload
+              (item) => item.slug !== action.payload
             );
             // Dispatch a success toast
             toast.error("Product removed from cart");

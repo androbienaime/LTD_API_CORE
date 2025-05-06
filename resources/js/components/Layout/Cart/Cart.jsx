@@ -49,7 +49,7 @@ const Cart = ({ className,  products }) =>{
                           <ul role="list" className="-my-6 divide-y divide-gray-200">
                             {products.map((product) => {
                                 let removeButton = (
-                                  <button key={product.id} onClick={() => dispatch(deleteItem(product.id))} type="button" className="font-medium text-indigo-600 hover:text-indigo-500">
+                                  <button key={product.slug} onClick={() => dispatch(deleteItem(product.slug))} type="button" className="font-medium text-indigo-600 hover:text-indigo-500">
                                     Remove
                                   </button>
                                 );
@@ -62,7 +62,7 @@ const Cart = ({ className,  products }) =>{
                                   </div>
                                 )
   
-                              return <ItemCart key={product.id} item={product} removeButton={removeButton} Quantity={Quantity} />;
+                              return <ItemCart key={product.slug} item={product} removeButton={removeButton} Quantity={Quantity} />;
                             })}
                           </ul>
                         </div>
