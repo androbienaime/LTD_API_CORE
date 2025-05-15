@@ -5,7 +5,7 @@ namespace App\Http\Resources\Core;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class ValueResource extends JsonResource
+class AttributeResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,9 +16,10 @@ class ValueResource extends JsonResource
     {
         return [
             "id" => $this->id,
-            "attribute" => new AttributeResource($this->attribute),
-            "value" => $this->value,
-            "color" => $this->color
-         ];
+            "name" => $this->name,
+            "type" => $this->type,
+            "shop_id" => $this->shop_id,
+            "account_id" => $this->account_id
+        ];
     }
 }

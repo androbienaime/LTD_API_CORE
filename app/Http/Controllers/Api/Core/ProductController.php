@@ -22,9 +22,13 @@ class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return ProductResource::collection(Product::getAvailableProductsWithMedia());
+        $perPage = $request->get('per_page', 10); // Nombre d'éléments par page (par défaut 15)
+
+        return ProductResource::collection(
+            Product::getAvailableProductsWithMedia()->paginate($perPage)
+        );    
     }
 
     /**

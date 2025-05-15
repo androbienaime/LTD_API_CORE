@@ -32,7 +32,10 @@ class ProductResource extends JsonResource
             "categories" => CategoryResource::collection(($this->whenLoaded('categories'))),
             "brands" => BrandResource::collection(($this->whenLoaded('brands'))),
             "discount" => new ProductDiscountResource($this->productDiscount),
-            "seo" => $this->ltspSeo
+            "seo" => $this->ltspSeo,
+            "has_unlimited_stock" => $this->has_unlimited_stock,
+            "stock_quantity" => $this->stock_quantity ?? null
+
         ];
 
         

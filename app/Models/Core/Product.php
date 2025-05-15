@@ -209,7 +209,6 @@ class Product extends Model implements HasMedia
     public static function getAvailableProductsWithMedia()
     {
         return self::with(['media', 'categories', 'brands'])
-                   ->available()
-                   ->get();
+                   ->available();
     }
 }
