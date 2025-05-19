@@ -17,6 +17,7 @@ class DeclinationResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            "id" => $this->id,
             "price" => $this->price,
             "sku" => $this->reference,
             "quantity" => $this->quantity,

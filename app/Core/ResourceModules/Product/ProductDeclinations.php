@@ -61,7 +61,7 @@ class ProductDeclinations
                             ->prefix(fn(callable $get) => $get("prefix_field") ?: Currency::where("id", $get("../../currency_id"))->first()->symbol)
                             ->columnSpan("full"),
                             TextInput::make("quantity")
-                                ->minValue(1)
+                                ->minValue(0)
                                 ->default(1)
                                 ->required()
                                 ->numeric(),
