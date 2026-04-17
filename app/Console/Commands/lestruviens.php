@@ -63,6 +63,8 @@ class lestruviens extends Command
         $this->info("The super_admin user has been created");
 
         $this->call("storage:link");
+        $this->call("jwt:secret");
+        $this->call("optimize");
         $this->info("LesTruviens installation completed");
     }
 }
