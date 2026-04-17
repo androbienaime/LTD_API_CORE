@@ -85,6 +85,11 @@ class Account extends Authenticatable implements HasMedia, FilamentUser, HasName
         'host',
     ];
 
+    protected $appends = [
+        'account_cover',
+        'account_profile',
+    ];
+
     /**
      * Get the identifier that will be stored in the subject claim of the JWT.
      *
@@ -196,5 +201,15 @@ class Account extends Authenticatable implements HasMedia, FilamentUser, HasName
     {
         return $this->avatar_url;
         // TODO: Implement getFilamentAvatarUrl() method.
+    }
+
+   public function getAccountCoverAttribute()
+    {
+        return $this->getFirstMediaUrl('account_cover');
+    }
+
+    public function getAccountProfileAttribute()
+    {
+        return $this->getFirstMediaUrl('account_profile');
     }
 }

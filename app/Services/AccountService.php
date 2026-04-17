@@ -13,50 +13,58 @@ class AccountService
 {
 
     public static function register(array $validated, $request=null){
-        $account = Account::create([
-            'firstname' => $validated['firstname'],
-            'lastname' => $validated['lastname'] ?? null,
-            'username' => $validated['username'],
-            'email' => $validated['email'],
-            'date_of_birth' => $validated['date_of_birth'] ?? null,
-            'gender' => $validated['gender'] ?? null,
-            'phone' => $validated['phone'] ?? null,
-            'password' => Hash::make($validated['password']),
-            'type' => "account"
-        ]);
+        try{
+            $account = Account::create([
+                'firstname' => $validated['firstname'],
+                'lastname' => $validated['lastname'] ?? null,
+                'username' => $validated['username'],
+                'email' => $validated['email'],
+                'date_of_birth' => $validated['date_of_birth'] ?? null,
+                'gender' => $validated['gender'] ?? null,
+                'phone' => $validated['phone'] ?? null,
+                'password' => Hash::make($validated['password']),
+                'type' => "account"
+            ]);
 
-        if($request->has("address")){
-            $account->address()->attach($request->address);
-        }
-
-        if ($request->hasFile('account_cover')) {
-            // Supprimer l'ancienne image de couverture si elle existe
-            if ($account->getFirstMedia('account_cover')) {
-                $account->getFirstMedia('account_cover')->delete();
+            if($request && $request->has("address")){
+                $account->address()->attach($request->address);
             }
-            $account->addMedia($request->file('account_cover'))
-                ->toMediaCollection('account_cover');
-        }
 
-        if ($request->hasFile('account_profile')) {
-            // Supprimer l'ancienne image de couverture si elle existe
-            if ($account->getFirstMedia('account_profile')) {
-                $account->getFirstMedia('account_profile')->delete();
+            if ($request && $request->hasFile('account_cover')) {
+                // Supprimer l'ancienne image de couverture si elle existe
+                if ($account->getFirstMedia('account_cover')) {
+                    $account->getFirstMedia('account_cover')->delete();
+                }
+                $account->addMedia($request->file('account_cover'))
+                    ->toMediaCollection('account_cover');
             }
-            $account->addMedia($request->file('account_profile'))
-                ->toMediaCollection('account_profile');
+
+            if ($request && $request->hasFile('account_profile')) {
+                // Supprimer l'ancienne image de couverture si elle existe
+                if ($account->getFirstMedia('account_profile')) {
+                    $account->getFirstMedia('account_profile')->delete();
+                }
+                $account->addMedia($request->file('account_profile'))
+                    ->toMediaCollection('account_profile');
+            }
+
+            $token = JWTAuth::fromUser($account);
+
+            return response()->json([
+                'status' => 'success',
+                'user' => $account,
+                'authorization' => [
+                    'token' => $token,
+                    'type' => 'bearer',
+                ]
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error("Registration error", ['error' => $e->getMessage()]);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Could not register account' . $e->getMessage(),
+            ], 500);
         }
-
-        $token = JWTAuth::fromUser($account);
-
-        return response()->json([
-            'status' => 'success',
-            'user' => $account,
-            'authorization' => [
-                'token' => $token,
-                'type' => 'bearer',
-            ]
-        ], 201);
     }
 
     public static function login(array $credentials){
@@ -68,13 +76,17 @@ class AccountService
                     'data' => null,
                 ], 401);
             }
-        
+            
+            $account = auth("account-service")->user(); // ✅ récupérer le user
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Authentication successful',
                 'data' => [
                     'token' => $token,
-                    'type' => 'bearer'
+                    'type' => 'bearer',
+                    'account' => $account, // 🔥 AJOUT ICI
+
                 ],
             ]);
 
