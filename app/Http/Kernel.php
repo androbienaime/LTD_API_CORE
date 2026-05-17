@@ -68,8 +68,10 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'auth.account' => \App\Http\Middleware\AccountAuthenticate::class,
-        'multi.guard' => \App\Http\Middleware\MultiGuardMiddleware::class,
+        // 'multi.guard' => \App\Http\Middleware\MultiGuardMiddleware::class,
         'auth:api' => \App\Http\Middleware\JWTMiddleware::class,
-        'auth:account' => Authenticate::class
+        // 'auth:account' => Authenticate::class,
+        'shop.permission' => \App\Http\Middleware\CheckShopPermission::class,
+        
     ];
 }

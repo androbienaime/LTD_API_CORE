@@ -9,7 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Core\ShopRequest;
+use App\Http\Resources\Core\ProductResource;
 use App\Http\Resources\Core\ShopResource;
+use App\Models\Core\Product;
 
 class ShopController extends Controller
 {
@@ -20,6 +22,14 @@ class ShopController extends Controller
     {
         $shops = Shop::with(['account', 'address', 'categories'])->paginate(10);
         return ShopResource::collection($shops);
+    }
+
+    public function getProductByShop(Request $request, Shop $shops){
+        $perPage = $request->get('per_page', 10); // Nombre d'éléments par page (par défaut 15)
+
+        return ProductResource::collection(
+            Product::getAvailableProductsByShopWithMedia($shops)->paginate($perPage)
+        );
     }
 
     /**

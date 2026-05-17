@@ -41,6 +41,8 @@ use App\Filament\Resources\Core\ShopResource\Pages\ViewShop;
 use App\Filament\Resources\Core\ShopResource\Pages\ListShops;
 use App\Filament\Resources\Core\ShopResource\Pages\CreateShop;
 use App\Filament\Resources\Core\ShopResource\RelationManagers;
+use App\Services\ShopMembershipService;
+use Spatie\Permission\Models\Role;
 
 class ShopResource extends Resource
 {
@@ -178,8 +180,59 @@ class ShopResource extends Resource
                             ])->columns(2)
                             ->columnSpan(1)
                     ])->columns(2),
-                        Forms\Components\Toggle::make('status')
-                            ->required(),
+                    
+                 Section::make()
+                    ->schema([
+                        Repeater::make('accountShop')
+                            ->relationship()
+                            ->label(__("Accounts And Roles"))
+                            ->schema([
+                                Select::make('account_id')
+                                    ->relationship("account", "email")
+                                    ->label(__("Account"))
+                                    ->getOptionLabelFromRecordUsing(
+                                        fn ($record) => $record->firstname . " (" . $record->email . ")"
+                                    )
+                                    ->searchable()
+                                    ->preload()
+                                    ->required(), // ← Obligatoire dans chaque ligne
+
+                                Select::make('role_id')
+                                    ->label(__('Role'))
+                                    ->options(function () {
+                                        return Role::query()
+                                            ->where('guard_name', 'account')
+                                            ->pluck('name', 'id');
+                                    })
+                                    ->searchable()
+                                    ->preload()
+                                    ->required(),
+                            ])
+                            // ← Si l'utilisateur connecté n'est PAS un account,
+                            //   au moins 1 entrée est obligatoire
+                            ->minItems(fn () => auth('account')->check() ? 0 : 1)
+                            ->default([])
+                            ->dehydrated(false)
+                            ->afterStateHydrated(function ($state, $set, $record) {
+                                if (! $record) return;
+
+                                $members = $record->accounts()
+                                    ->get()
+                                    ->map(fn ($account) => [
+                                        'account_id' => $account->id,
+                                        'role_id'    => $account->pivot->role_id,
+                                    ])
+                                    ->toArray();
+
+                                $set('memberships', $members);
+                            })
+                            ->columns(2)
+                            ->columnSpan("full"),
+                    ]),
+                    
+                    Forms\Components\Toggle::make('status')
+                        ->required()
+                        ->default(true),
 
                     ])
             ]);

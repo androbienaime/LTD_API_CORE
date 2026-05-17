@@ -32,5 +32,30 @@ class AccountController extends Controller
         return AccountService::login($credentials);
     }
 
+    // Controller
+    public function refresh(Request $request)
+    {
+        try {
+            // Lit depuis le body OU depuis le header Authorization
+            $oldToken = $request->input('refresh_token') 
+                ?? JWTAuth::getToken();
+
+            if (! $oldToken) {
+                return response()->json(['error' => 'Token manquant'], 400);
+            }
+
+            $newToken = JWTAuth::refresh($oldToken);
+
+            return response()->json(['token' => $newToken]);
+
+        } catch (TokenExpiredException $e) {
+            return response()->json(['error' => 'Token expiré'], 401);
+        } catch (TokenInvalidException $e) {
+            return response()->json(['error' => 'Token invalide'], 401);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Impossible de rafraîchir'], 500);
+        }
+    }
+
 
 }

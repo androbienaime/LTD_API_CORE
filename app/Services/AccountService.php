@@ -79,6 +79,13 @@ class AccountService
             
             $account = auth("account-service")->user(); // ✅ récupérer le user
 
+            $account->load(['shop' => function ($query) {
+                $query->wherePivot('deleted_at', null)
+                    ->wherePivot('status', 'active')
+                    ->withPivot(['created_at', 'status'])
+                    ->orderBy('pivot_created_at', 'desc');
+            }]);
+            
             return response()->json([
                 'status' => 'success',
                 'message' => 'Authentication successful',

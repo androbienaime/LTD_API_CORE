@@ -7,13 +7,19 @@ use Illuminate\Auth\Middleware\Authenticate as Middleware;
 
 class AccountAuthenticate extends Middleware
 {
+
     protected function authenticate($request, array $guards)
     {
+
         if ($this->auth->guard('account')->check()) {
             return $this->auth->shouldUse('account');
         }
 
-        $this->unauthenticated($request, ['account']);
+        if ($this->auth->guard('account-service')->check()) {
+            return $this->auth->shouldUse('account-service');
+        }
+
+        $this->unauthenticated($request, ['account', 'account-service']);
     }
 
     protected function redirectTo($request)

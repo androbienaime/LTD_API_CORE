@@ -211,4 +211,12 @@ class Product extends Model implements HasMedia
         return self::with(['media', 'categories', 'brands'])
                    ->available();
     }
+    
+    // Récupérer les produits disponibles avec leurs médias
+    public static function getAvailableProductsByShopWithMedia(Shop $shop)
+    {
+        return self::with(['media', 'categories', 'brands'])
+                     ->where('shop_id', $shop->id)
+                   ->available();
+    }
 }

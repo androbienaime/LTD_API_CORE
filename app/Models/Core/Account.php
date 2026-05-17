@@ -3,31 +3,29 @@
 namespace App\Models\Core;
 
 use App\Core\Trait\Models\AccountShopTrait;
+use App\Core\Trait\HasShopPermissions;
 use Filament\Panel;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\MediaLibrary\HasMedia;
-use Illuminate\Support\Collection;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Filament\Models\Contracts\HasName;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Database\Eloquent\Model;
 use Filament\Models\Contracts\HasAvatar;
 use Illuminate\Notifications\Notifiable;
-use Filament\Models\Contracts\HasTenants;
-use Illuminate\Database\Eloquent\Builder;
 use Filament\Models\Contracts\FilamentUser;
 use Spatie\MediaLibrary\InteractsWithMedia;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use BezhanSalleh\FilamentShield\Traits\HasPanelShield;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
+use Spatie\Image\Enums\Fit;
 
 class Account extends Authenticatable implements HasMedia, FilamentUser, HasName, HasAvatar, JWTSubject
 {
     use HasApiTokens, HasFactory, Notifiable, InteractsWithMedia, HasRoles, HasPanelShield,
-        AccountShopTrait;
+        AccountShopTrait, HasShopPermissions;
 
 
     protected $guard = "accounts";
@@ -100,6 +98,14 @@ class Account extends Authenticatable implements HasMedia, FilamentUser, HasName
         return $this->getKey();
     }
 
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this
+            ->addMediaConversion('thumb')
+            ->fit(Fit::Crop, 300, 300) // taille au choix
+            ->nonQueued();
+    }
+
     /**
      * Return a key value array, containing any custom claims to be added to the JWT.
      *
@@ -107,9 +113,36 @@ class Account extends Authenticatable implements HasMedia, FilamentUser, HasName
      */
     public function getJWTCustomClaims()
     {
+        // 1. Récupère les lignes du pivot pour cet account
+        $rows = \DB::table('account_shop')
+            ->where('account_id', $this->id)
+            ->whereNotNull('role_id')
+            ->get(['shop_id', 'role_id']);
+
+        if ($rows->isEmpty()) {
+            return ['permissions' => (object) []];
+        }
+
+        // 2. Charge les roles Spatie avec leurs permissions en une seule requête
+        $roles = \Spatie\Permission\Models\Role::with('permissions')
+            ->whereIn('id', $rows->pluck('role_id')->unique()->toArray())
+            ->get()
+            ->keyBy('id');
+
+        // 3. Construit { "shop_id" => ["permission.name", ...] }
+        $permissions = $rows->mapWithKeys(function ($row) use ($roles) {
+            $perms = $roles->get($row->role_id)
+                ?->permissions
+                ->pluck('name')
+                ->toArray() ?? [];
+
+            return [(string) $row->shop_id => $perms];
+        });
+
         return [
             'email' => $this->email,
             'name' => $this->name,
+            'permissions' => $permissions
             // Ajoutez d'autres claims personnalisés si nécessaire
         ];
     }
@@ -175,7 +208,14 @@ class Account extends Authenticatable implements HasMedia, FilamentUser, HasName
 
     public function shop() : BelongsToMany
     {
-        return $this->belongsToMany(Shop::class);
+         return $this->belongsToMany(\App\Models\Core\Shop::class, 'account_shop')
+        ->withPivot('role_id')
+        ->withTimestamps();
+    }
+
+    public function AccountShop()
+    {
+        return $this->hasMany(AccountShop::class);
     }
 
     public function shopActive()
@@ -205,11 +245,14 @@ class Account extends Authenticatable implements HasMedia, FilamentUser, HasName
 
    public function getAccountCoverAttribute()
     {
-        return $this->getFirstMediaUrl('account_cover');
+        $media = $this->getFirstMedia('account_cover');
+        return $media ? $media->getFullUrl('thumb') : null;
+
     }
 
     public function getAccountProfileAttribute()
     {
-        return $this->getFirstMediaUrl('account_profile');
+        $media = $this->getFirstMedia('account_profile');
+        return $media ? $media->getFullUrl('thumb') : null;
     }
 }

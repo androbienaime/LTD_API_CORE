@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Http\Requests\Core\ProductRequest;
 use App\Http\Resources\Core\ProductResource;
 use App\Core\States\GeneralStatus\ActiveState;
+use App\Models\Core\Shop;
 
 class ProductController extends Controller
 {

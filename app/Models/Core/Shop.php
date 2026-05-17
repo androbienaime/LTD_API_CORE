@@ -15,6 +15,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+
 class Shop extends Model implements HasMedia, HasName
 {
     use HasFactory, InteractsWithMedia;
@@ -50,6 +51,21 @@ class Shop extends Model implements HasMedia, HasName
         return $this->belongsToMany(Account::class);
     }
 
+
+public function accounts(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+{
+    return $this->belongsToMany(Account::class, 'account_shop')
+                ->using(AccountShop::class)       // ← pivot explicite
+                ->withPivot(['role_id', 'deleted_at'])
+                ->withTimestamps()
+                ->wherePivotNull('deleted_at');   // respecte SoftDeletes
+}
+
+    public function AccountShop()
+    {
+        return $this->hasMany(AccountShop::class);
+    }
+    
     public function subscribers(){
         return $this->belongsToMany(Customer::class, 'subscriptions');
     }
@@ -139,10 +155,6 @@ class Shop extends Model implements HasMedia, HasName
     public function getFilamentName(): string
     {
         return $this->name;
-    }
-
-    public function accounts() : BelongsToMany{
-        return $this->belongsToMany(Account::class);
     }
 
     public static function isAccountEligible(Account $account){

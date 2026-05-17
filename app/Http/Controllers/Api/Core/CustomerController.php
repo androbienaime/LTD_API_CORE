@@ -43,7 +43,10 @@ class CustomerController extends Controller
             $customer = Customer::create([
                 'firstname' => $validatedData['firstname'],
                 'lastname' => $validatedData['lastname'] ?? null,
+                'name' => $validatedData['name'],
                 'gender' => $validatedData['gender'] ?? null,
+                'phone' => $validatedData['phone'] ?? null,
+                'phone_code' => $validatedData['phone_code'] ?? null,
                 'email' => $validatedData['email'] ?? null,
                 'middle_name' => $validatedData['middle_name'] ?? null,
                 'identityNumber_id' => $validatedData["identity_number_id"] ?? null,
@@ -54,23 +57,22 @@ class CustomerController extends Controller
 
             if(isset($validatedData["addresses"])){
                 // Associer les adresses via la relation belongsToMany
-                $customer->addresses()->sync($validatedData['addresses']);
+                $customer->addressesCustomers()->sync($validatedData['addresses']);
             }
+
+            DB::commit();
 
             return response()->json([
                 'message' => 'Customer créé avec succès.',
-                'customer' => new CustomerResource($customer), // Charger les adresses associées
+                'data' => new CustomerResource($customer->load('addressCustomers')),
             ], 201);
-
-            DB::commit();
         }catch(Exception $e){
             DB::rollBack();
 
-            return [
+            return response()->json([
                 'message' => 'Error updating customer',
                 'error' => $e->getMessage(),
-                'code' => 500
-            ];
+            ], 500);
         }
     }
 
@@ -79,7 +81,9 @@ class CustomerController extends Controller
      */
     public function show(Customer $customer)
     {
-        return new CustomerResource($customer);
+        return response()->json([
+            'data' => new CustomerResource($customer)
+        ]);
     }
 
     /**
@@ -103,7 +107,10 @@ class CustomerController extends Controller
             $customer->update([
                 'firstname' => $validatedData['firstname'] ?? $customer->firstname,
                 'lastname' => $validatedData['lastname'] ?? $customer->lastname,
+                'name' => $validatedData['name'] ?? $customer->name,
                 'gender' => $validatedData['gender'] ?? $customer->gender,
+                'phone' => $validatedData['phone'] ?? $customer->phone,
+                'phone_code' => $validatedData['phone_code'] ?? $customer->phone_code,
                 'email' => $validatedData['email'] ?? $customer->email,
                 'middle_name' => $validatedData['middle_name'] ?? $customer->middle_name,
                 'identityNumber_id' => $validatedData['identity_number_id'] ?? $customer->identityNumber_id,
@@ -114,7 +121,7 @@ class CustomerController extends Controller
 
             // Mettre à jour les adresses, si fournies
             if (isset($validatedData['addresses'])) {
-                $customer->addresses()->sync($validatedData['addresses']);
+                $customer->addressCustomers()->sync($validatedData['addresses']);
             }
 
             DB::commit();

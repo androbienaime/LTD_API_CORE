@@ -54,7 +54,7 @@ class OrderService
     
             return [
                 'message' => 'Commande créée avec succès.',
-                'order' => new OrderResource($order),
+                'data' => new OrderResource($order),
                 'code' => 200
             ];
     
@@ -177,7 +177,8 @@ class OrderService
             );
 
             if ($validated["order_amount"] > $total) {
-                throw new \Exception("Order amount exceeds total");
+            
+                throw new \Exception("Order amount exceeds total : " . $total . "for order amount : " . $validated["order_amount"]);
             }
 
             $order->total_amount_order = $total;

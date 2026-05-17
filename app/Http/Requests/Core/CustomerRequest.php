@@ -34,7 +34,10 @@ class CustomerRequest extends FormRequest
         return [
             'firstname' => 'required|string|max:255',
             'lastname' => 'nullable|string|max:255',
+            'name' => 'required|string|max:255',
             'gender' => 'nullable|string|in:male,female,other',
+            'phone' => 'nullable|string|max:20',
+            'phone_code' => 'nullable|integer',
             'email' => 'nullable|email|max:255|unique:customers,email',
             'middle_name' => 'nullable|string|max:255',
             'identity_number_id' => 'nullable|integer|exists:identity_numbers,id',
@@ -42,7 +45,7 @@ class CustomerRequest extends FormRequest
             'shop_id' => 'nullable|integer|exists:shops,id',
             'merchant_id' => 'nullable|integer|exists:merchants,id',
             'addresses' => 'nullable|array',
-            'addresses.*' => 'integer|exists:addresses,id',
+            // 'addresses.*' => 'integer|exists:addresses_customers,id',
         ];
     }
 
@@ -55,6 +58,8 @@ class CustomerRequest extends FormRequest
             'firstname' => 'sometimes|string|max:255', // Pas toujours requis pour l'update
             'lastname' => 'nullable|string|max:255',
             'gender' => 'nullable|string|in:male,female,other',
+            'phone' => 'nullable|string|max:20',
+            'phone_code' => 'nullable|integer',
             'email' => 'nullable|email|max:255|unique:customers,email,' . $this->route('customer')->id,
             'middle_name' => 'nullable|string|max:255',
             'identity_number_id' => 'nullable|integer|exists:identity_numbers,id',
@@ -62,7 +67,7 @@ class CustomerRequest extends FormRequest
             'shop_id' => 'nullable|integer|exists:shops,id',
             'merchant_id' => 'nullable|integer|exists:merchants,id',
             'addresses' => 'nullable|array',
-            'addresses.*' => 'integer|exists:addresses,id',
+            'addresses.*' => 'integer|exists:addresses_customers,id',
         ];
     }
 }
