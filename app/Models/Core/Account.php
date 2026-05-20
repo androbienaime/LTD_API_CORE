@@ -112,41 +112,43 @@ class Account extends Authenticatable implements HasMedia, FilamentUser, HasName
      * @return array
      */
     public function getJWTCustomClaims()
-    {
-        // 1. Récupère les lignes du pivot pour cet account
-        $rows = \DB::table('account_shop')
-            ->where('account_id', $this->id)
-            ->whereNotNull('role_id')
-            ->get(['shop_id', 'role_id']);
+{
+    $rows = \DB::table('account_shop')
+        ->where('account_id', $this->id)
+        ->whereNotNull('role_id')
+        ->get(['shop_id', 'role_id']);
 
-        if ($rows->isEmpty()) {
-            return ['permissions' => (object) []];
-        }
-
-        // 2. Charge les roles Spatie avec leurs permissions en une seule requête
-        $roles = \Spatie\Permission\Models\Role::with('permissions')
-            ->whereIn('id', $rows->pluck('role_id')->unique()->toArray())
-            ->get()
-            ->keyBy('id');
-
-        // 3. Construit { "shop_id" => ["permission.name", ...] }
-        $permissions = $rows->mapWithKeys(function ($row) use ($roles) {
-            $perms = $roles->get($row->role_id)
-                ?->permissions
-                ->pluck('name')
-                ->toArray() ?? [];
-
-            return [(string) $row->shop_id => $perms];
-        });
-
+    if ($rows->isEmpty()) {
         return [
-            'email' => $this->email,
-            'name' => $this->name,
-            'permissions' => $permissions
-            // Ajoutez d'autres claims personnalisés si nécessaire
+            'permissions'    => (object) [],
+            'is_super_admin' => false,
         ];
     }
 
+    $roles = \Spatie\Permission\Models\Role::with('permissions')
+        ->whereIn('id', $rows->pluck('role_id')->unique()->toArray())
+        ->get()
+        ->keyBy('id');
+
+    $permissions = $rows->mapWithKeys(function ($row) use ($roles) {
+        $perms = $roles->get($row->role_id)
+            ?->permissions
+            ->pluck('name')
+            ->toArray() ?? [];
+
+        return [(string) $row->shop_id => $perms];
+    });
+
+    // ✅ Vrai si le compte a le rôle "super-admin" dans N'IMPORTE quel shop
+    $isSuperAdmin = $roles->contains('name', 'super-admin');
+
+    return [
+        'email'          => $this->email,
+        'name'           => $this->name,
+        'permissions'    => $permissions,
+        'is_super_admin' => $isSuperAdmin,
+    ];
+}
     public function getFilamentName(): string
     {
         return "{$this->firstname} {$this->lastname}";
@@ -254,5 +256,9 @@ class Account extends Authenticatable implements HasMedia, FilamentUser, HasName
     {
         $media = $this->getFirstMedia('account_profile');
         return $media ? $media->getFullUrl('thumb') : null;
+    }
+
+    public function isAdmin(){
+        return $this->hasRole("super-admin");
     }
 }

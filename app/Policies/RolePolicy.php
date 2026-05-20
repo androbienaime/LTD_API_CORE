@@ -41,9 +41,9 @@ class RolePolicy
      */
     public function update(Account|User $account, Role $role): bool
     {
-        if($role->name === 'super_admin' || $role->name === 'super-admin') {
-            return false;
-        }
+        // if($role->name === 'super_admin' || $role->name === 'super-admin') {
+        //     return false;
+        // }
         return $account->can('update_shield::role');
     }
 

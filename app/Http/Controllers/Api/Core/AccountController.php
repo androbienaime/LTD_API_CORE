@@ -32,30 +32,70 @@ class AccountController extends Controller
         return AccountService::login($credentials);
     }
 
-    // Controller
-    public function refresh(Request $request)
-    {
-        try {
-            // Lit depuis le body OU depuis le header Authorization
-            $oldToken = $request->input('refresh_token') 
-                ?? JWTAuth::getToken();
-
-            if (! $oldToken) {
-                return response()->json(['error' => 'Token manquant'], 400);
-            }
-
-            $newToken = JWTAuth::refresh($oldToken);
-
-            return response()->json(['token' => $newToken]);
-
-        } catch (TokenExpiredException $e) {
-            return response()->json(['error' => 'Token expiré'], 401);
-        } catch (TokenInvalidException $e) {
-            return response()->json(['error' => 'Token invalide'], 401);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Impossible de rafraîchir'], 500);
+   public function refresh(Request $request)
+{
+    try {
+        // Accepte le token depuis :
+        // 1. Le body : { "refresh_token": "eyJ..." }
+        // 2. Le header Authorization: Bearer eyJ...
+        $oldToken = $request->input('refresh_token')
+            ?? JWTAuth::getToken();
+ 
+        if (!$oldToken) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Token manquant',
+            ], 400);
         }
+ 
+        // Générer le nouveau access token (courte durée)
+        $newAccessToken = JWTAuth::setToken($oldToken)->refresh();
+ 
+        // ✅ Rotation du refresh token :
+        // On génère un nouveau token avec une TTL longue (30 jours)
+        // à partir du payload du nouvel access token
+        $payload      = JWTAuth::setToken($newAccessToken)->getPayload();
+        $subject      = $payload->get('sub');
+        $newRefreshToken = JWTAuth::fromUser(
+            auth('account-service')->getProvider()->retrieveById($subject)
+        );
+ 
+        // Surcharger la TTL du refresh token (30 jours)
+        $newRefreshToken = JWTAuth::customClaims(['exp' => now()->addDays(30)->timestamp])
+            ->fromUser(
+                auth('account-service')->getProvider()->retrieveById($subject)
+            );
+ 
+        return response()->json([
+            'status'        => 'success',
+            'message'       => 'Token rafraîchi avec succès',
+            'data'          => [
+                'token'         => $newAccessToken,
+                'refresh_token' => $newRefreshToken,
+                'token_type'    => 'bearer',
+                'expires_in'    => config('jwt.ttl') * 60,
+            ],
+        ]);
+ 
+    } catch (TokenExpiredException $e) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Token expiré, veuillez vous reconnecter',
+        ], 401);
+ 
+    } catch (TokenInvalidException $e) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Token invalide',
+        ], 401);
+ 
+    } catch (\Exception $e) {
+        Log::error('Refresh token error', ['error' => $e->getMessage()]);
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Impossible de rafraîchir le token',
+        ], 500);
     }
-
+}
 
 }

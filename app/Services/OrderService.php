@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Requests\Core\OrderRequest;
 use App\Http\Resources\Core\OrderResource;
 use App\Models\Core\Delivery;
+use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
 
 class OrderService
@@ -22,6 +23,18 @@ class OrderService
             DB::beginTransaction();
     
             $validated = $request->validated();
+
+            
+            $deliveryId = null;
+
+            if (isset($validated['delivery'])) {
+                $delivery = Delivery::create([
+                    'delivery_date' => Carbon::parse($validated['delivery']['delivery_date'])
+                                            ->format('Y-m-d H:i:s'),
+                    'costs'         => $validated['delivery']['costs'] ?? 0,
+                ]);
+                $deliveryId = $delivery->id;
+            }
     
             // Créer l'ordre en utilisant un fill similaire à l'update
             $order = Order::create(array_filter([
@@ -30,7 +43,7 @@ class OrderService
                 'account_id' => $validated['account'] ?? null,
                 'merchant_id' => $validated['merchant'] ?? null,
                 'coupon_id' => $validated['coupon'] ?? null,
-                'delivery_id' => $validated['delivery'] ?? null,
+                'delivery_id' => $deliveryId ?? null,
                 'order_amount' => $validated['order_amount'],
                 'total_amount_order' => $validated['total_amount_order'],
                 'reference_order' => $validated['reference_order'],
@@ -76,6 +89,17 @@ class OrderService
 
                 $validated = $request->validated();
 
+                $deliveryId = null;
+
+                if (isset($validated['delivery'])) {
+                    $delivery = Delivery::create([
+                        'delivery_date' => Carbon::parse($validated['delivery']['delivery_date'])
+                                                ->format('Y-m-d H:i:s'),
+                        'costs'         => $validated['delivery']['costs'] ?? 0,
+                    ]);
+                    $deliveryId = $delivery->id;
+                }
+
                 // Update core order information
                 $order->fill(array_filter([
                     'customer_id' => $validated['customer'] ?? null,
@@ -83,7 +107,7 @@ class OrderService
                     'account_id' => $validated['account'] ?? null,
                     'merchant_id' => $validated['merchant'] ?? null,
                     'coupon_id' => $validated['coupon'] ?? null,
-                    'delivery_id' => $validated['delivery'] ?? null,
+                    'delivery_id' => $deliveryId ?? null,
                     'reference_order' => $validated['reference_order'] ?? null,
                     'secure_key' => $validated['secure_key'] ?? null,
                     'has_delivery' => $validated['has_delivery'] ?? null,
@@ -93,6 +117,7 @@ class OrderService
                 if (isset($validated['order_products'])) {
                     self::syncOrderProducts($order, $validated);
                 }
+
 
                 // Calculate and update total order amount
                 self::updateOrderTotal($order, $validated);

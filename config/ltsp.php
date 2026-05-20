@@ -2,7 +2,7 @@
     return [
         "excludedResources" => [
             "account" => [
-                'AccountResource',
+                // 'AccountResource',
                 'UserResource',
                 'AddressResource',
                 'CityResource',

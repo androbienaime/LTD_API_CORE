@@ -67,54 +67,60 @@ class AccountService
         }
     }
 
-    public static function login(array $credentials){
-        try {
-            if (!$token = auth("account-service")->attempt($credentials)) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Invalid credentials',
-                    'data' => null,
-                ], 401);
-            }
-            
-            $account = auth("account-service")->user(); // ✅ récupérer le user
-
-            $account->load(['shop' => function ($query) {
-                $query->wherePivot('deleted_at', null)
-                    ->wherePivot('status', 'active')
-                    ->withPivot(['created_at', 'status'])
-                    ->orderBy('pivot_created_at', 'desc');
-            }]);
-            
+public static function login(array $credentials){
+    try {
+        if (!$token = auth("account-service")->attempt($credentials)) {
             return response()->json([
-                'status' => 'success',
-                'message' => 'Authentication successful',
-                'data' => [
-                    'token' => $token,
-                    'type' => 'bearer',
-                    'account' => $account, // 🔥 AJOUT ICI
-
-                ],
-            ]);
-
-        } catch (TokenInvalidException $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid token',
-            ], 400);
-        } catch (TokenExpiredException $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Token has expired',
+                'status'  => 'error',
+                'message' => 'Invalid credentials',
+                'data'    => null,
             ], 401);
-        } catch (\Exception $e) {
-            Log::error("Authentication error", ['error' => $e->getMessage()]);
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Could not authenticate',
-            ], 500);
         }
+ 
+        $account = auth("account-service")->user();
+ 
+        $account->load(['shop' => function ($query) {
+            $query->wherePivot('deleted_at', null)
+                  ->wherePivot('status', 'active')
+                  ->withPivot(['created_at', 'status'])
+                  ->orderBy('pivot_created_at', 'desc');
+        }]);
+ 
+        // ✅ Générer un refresh token avec une durée de vie plus longue
+        // setTTL() est en minutes — ici 30 jours
+        $refreshToken = auth("account-service")
+            ->setTTL(60 * 24 * 30)
+            ->tokenById($account->id);
+ 
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Authentication successful',
+            'data'    => [
+                'token'         => $token,        // accès court (config jwt.ttl)
+                'refresh_token' => $refreshToken, // ✅ refresh long (30 jours)
+                'type'          => 'bearer',
+                'account'       => $account,
+            ],
+        ]);
+ 
+    } catch (TokenInvalidException $e) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Invalid token',
+        ], 400);
+    } catch (TokenExpiredException $e) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Token has expired',
+        ], 401);
+    } catch (\Exception $e) {
+        Log::error("Authentication error", ['error' => $e->getMessage()]);
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Could not authenticate',
+        ], 500);
     }
+}
 
     public function profile()
     {

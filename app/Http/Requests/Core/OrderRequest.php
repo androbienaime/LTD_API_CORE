@@ -56,7 +56,11 @@ class OrderRequest extends FormRequest
             'account' => 'nullable|exists:accounts,id',
             'merchant' => 'nullable|exists:merchants,id',
             'coupon' => 'nullable|exists:coupons,id',
-            'delivery' => 'nullable|exists:deliveries,id',
+            // 'delivery' => 'nullable|exists:deliveries,id',
+            // Après — accepte un ID OU un objet inline
+            'delivery' => 'nullable',
+            'delivery.delivery_date' => 'required_if:delivery,array|date',
+            'delivery.costs'         => 'sometimes|numeric|min:0',
             'order_amount' => [
                 'nullable',
                 'numeric',
