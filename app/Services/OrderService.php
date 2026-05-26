@@ -10,20 +10,24 @@ use App\Core\Trait\ProductTrait;
 use Illuminate\Support\Facades\DB;
 use App\Http\Requests\Core\OrderRequest;
 use App\Http\Resources\Core\OrderResource;
+use App\Models\Core\Currency;
 use App\Models\Core\Delivery;
+use App\Models\Core\PaymentMethod;
+use App\Models\Core\Shop;
 use Carbon\Carbon;
+use Carbon\Traits\ToStringFormat;
 use Illuminate\Validation\ValidationException;
 
 class OrderService
 {
     use ProductTrait;
 
-    public static function createOrder(OrderRequest $request){
+    public static function createOrder(OrderRequest $request, Shop $shop){
         try {
             DB::beginTransaction();
     
             $validated = $request->validated();
-
+            
             
             $deliveryId = null;
 
@@ -35,12 +39,36 @@ class OrderService
                 ]);
                 $deliveryId = $delivery->id;
             }
+
+
+            $totalNet   = $validated['total_amount_order'];
+            $amountPaid = $validated['order_amount'];
+            $balance    = $totalNet - $amountPaid;
+            $has_advance = $amountPaid > 0 && $amountPaid < $totalNet;
+            $method = "cash";
+
+            $paymentMethod = self::findOrCreatePaymentMethod(
+                !empty($validated["payment_method"]) ? $validated["payment_method"] : $method
+            );            
+            
+            // if($validated["payment_method"] == null){
+            //     $paymentMethod = self::findOrCreatePaymentMethod($method);
+            // }else{
+
+            // }
+
+            $currencyId = Currency::findByIsoCode($validated['currency'])->id;
+
+            if($currencyId == Null){
+                throw new \Exception("Currency not found with iso code : " . $validated['currency']);
+            }
     
             // Créer l'ordre en utilisant un fill similaire à l'update
             $order = Order::create(array_filter([
                 'customer_id' => $validated['customer'],
-                'currency_id' => $validated['currency'],
+                'currency_id' => $currencyId,
                 'account_id' => $validated['account'] ?? null,
+                'shop_id' => $shop->id ?? null,
                 'merchant_id' => $validated['merchant'] ?? null,
                 'coupon_id' => $validated['coupon'] ?? null,
                 'delivery_id' => $deliveryId ?? null,
@@ -49,13 +77,26 @@ class OrderService
                 'reference_order' => $validated['reference_order'],
                 'secure_key' => $validated['secure_key'],
                 'has_delivery' => $validated['has_delivery'],
-                'balance' => $validated['balance'] ?? 0,
+                'balance' => $balance ?? 0,
+                "payment_method_id" => $paymentMethod,
+                "has_advance" => $has_advance,
                 'total_discount' => $validated['total_discount'] ?? 0,
-            ]));
+            ], fn ($value) => $value !== null));
     
             // Utiliser la méthode syncOrderProducts de l'update
             if (isset($validated['order_products'])) {
                 self::syncOrderProducts($order, $validated);
+            }
+
+              // 2. Créer une ligne d'avance uniquement si paiement partiel
+            //    (amount_paid > 0  ET  amount_paid < total_net)
+            if ($has_advance) {
+                $order->advanceOrders()->create([
+                    'amount_order_advance' => $amountPaid,
+                    'currency_id'          => $currencyId,
+                    'payment_method_id'       => $paymentMethod,
+                    'account_id' => $validated["account"]
+                ]);
             }
     
             // Utiliser la méthode updateOrderTotal de l'update
@@ -100,10 +141,41 @@ class OrderService
                     $deliveryId = $delivery->id;
                 }
 
+                $currencyId = Currency::findByIsoCode($validated['currency'])->id;
+                if($currencyId == Null){
+                    throw new \Exception("Currency not found with iso code : " . $validated['currency']);
+                }
+                
+                $newOrderAmount = 0;
+                $method = 'cash'; 
+                $paymentMethod = self::findOrCreatePaymentMethod(
+                    !empty($validated["payment_method"]) ? $validated["payment_method"] : $method
+                );  
+
+                if (isset($validated['order_amount'])) {
+                    $orderAmount = (float) $validated['order_amount'];
+                    /**
+                     * Sécurité :
+                     * - pas négatif
+                     * - pas zéro
+                     * - pas supérieur au balance
+                     */
+                    if (
+                        $orderAmount > 0 &&
+                        $orderAmount <= (float) $order->balance
+                    ) {
+
+                        /**
+                         * Arrondi sécurisé
+                         */
+                        $newOrderAmount = round($orderAmount, 2);
+                    }
+                }
+
                 // Update core order information
                 $order->fill(array_filter([
                     'customer_id' => $validated['customer'] ?? null,
-                    'currency_id' => $validated['currency'] ?? null,
+                    'currency_id' => $currencyId,
                     'account_id' => $validated['account'] ?? null,
                     'merchant_id' => $validated['merchant'] ?? null,
                     'coupon_id' => $validated['coupon'] ?? null,
@@ -120,15 +192,34 @@ class OrderService
 
 
                 // Calculate and update total order amount
-                self::updateOrderTotal($order, $validated);
+                // self::updateOrderTotal($order, $validated);
 
                 $order->save();
+
+                if ($newOrderAmount > 0) {
+
+                    $order->increment('order_amount', $newOrderAmount);
+
+                    $order->decrement('balance', $newOrderAmount);
+
+                    // Order::where('id', $order->id)->update([
+                    //     'order_amount' => DB::raw('order_amount + '.$newOrderAmount),
+                    //     'balance' => DB::raw('balance - '.$newOrderAmount),
+                    // ]);
+
+                    $order->advanceOrders()->create([
+                        'amount_order_advance' => $newOrderAmount,
+                        'currency_id'          => $currencyId,
+                        'payment_method_id'       => $paymentMethod,
+                        "account_id" => $validated["account"]
+                    ]);
+                }
 
                 DB::commit();
 
                 return [
                     'message' => 'Order updated successfully',
-                    'order' => new OrderResource($order),
+                    'data' => new OrderResource($order),
                     'code' => 200
                 ];
             } catch (\Exception $e) {
@@ -166,6 +257,11 @@ class OrderService
             self::validateProductAvailability($product, $productData);
             self::reduceStock($product, $productData['quantity']);
 
+            $currencyId = Currency::findByIsoCode($validated['currency'])->id;
+            if($currencyId == Null){
+                throw new \Exception("Currency not found with iso code : " . $validated['currency']);
+            }
+
             $orderProduct = $order->orderProducts()->updateOrCreate(
                 ['product_id' => $product->id],
                 [
@@ -174,7 +270,7 @@ class OrderService
                         'product' => $product,
                         'declination_id' => $productData['declination'] ?? null,
                         'delivery_id' => $productData['delivery'] ?? null,
-                        'currency_id' => $validated['currency'],
+                        'currency_id' => $currencyId,
                         'quantity' => $productData['quantity']
                     ]),
                     'discount' => $productData['discount'] ?? 0,
@@ -186,6 +282,12 @@ class OrderService
 
         private static function updateOrderTotal(Order $order, array $validated)
         {
+
+            $currencyId = Currency::findByIsoCode($validated['currency'])->id;
+            if($currencyId == Null){
+                throw new \Exception("Currency not found with iso code : " . $validated['currency_id']);
+            }
+
             $orderProducts = $order->orderProducts;
 
             $total = OrderCalculatorService::calculateTotal(
@@ -196,7 +298,7 @@ class OrderService
                     'delivery' => $product->delivery_id,
                     'discount' => $product->discount,
                 ])->toArray(),
-                $validated['currency'],
+                $currencyId,
                 $validated['delivery_cost'] ?? 0,
                 $validated['coupon_code'] ?? ""
             );
@@ -227,7 +329,7 @@ class OrderService
     }
 
     public static function changeState(Order $order, Request $request){
-          // Récupérer l'état envoyé
+          // Récupérer l'état envoyé 
           $state = $request->input('state');
 
           // Définir les états disponibles
@@ -247,6 +349,9 @@ class OrderService
               'state' => 'required|string|in:' . implode(',', $availableStates),
               'reason' => 'nullable|string|max:255',
               'tracking_number' => 'nullable|string|max:255',
+              'account_delivered_id' => 'nullable|exists:accounts,id',
+              'account_shipped_id' => 'nullable|exists:accounts,id',
+              'currency_id' => 'nullable|exists:currencies,iso_code',
           ];
   
           // Ajouter des règles spécifiques à certains états
@@ -260,12 +365,25 @@ class OrderService
   
           // Validation des données
           $validated = $request->validate($rules);
-  
-          $order->changeStatus("App\\Core\\States\\Order\\".$state, $validated['reason'] ?? null, $validated['tracking_number'] ?? null);
+        
+          $currencyId = null;
+          if(isset($validated['currency_id'])){
+              $currencyId = Currency::findByIsoCode($validated['currency_id'])->id;
+              if($currencyId == null){
+                  throw new \Exception("Currency not found with iso code : " . $validated['currency_id']);
+              }
+          }
+
+          $order->changeStatus("App\\Core\\States\\Order\\".$state, 
+          $validated['reason'] ?? null, 
+          $validated['tracking_number'] ?? null,
+          $validated['account_shipped_id'] ?? null,
+          $validated['account_delivered_id'] ?? null,
+          $currencyId );
   
           return[
               'message' => 'État de la commande mis à jour avec succès.',
-              'order' => new OrderResource($order),
+              'data' => new OrderResource($order),
           ];
     }
 
@@ -351,13 +469,17 @@ class OrderService
                 'product' => 'required|exists:products,slug',
                 'delivery_id' => 'nullable|exists:deliveries,id',
                 'declination_id' => 'nullable|exists:declinations,id',
-                'currency_id' => 'required|string|exists:currencies,id',
+                'currency_id' => 'required|string|exists:currencies,iso_code',
                 "quantity" => "required|integer|min:1"
             ]);
 
             try{
                 $product = Product::findBySlug($validated["product"]);
 
+                $currencyId = Currency::findByIsoCode($validated['currency'])->id;
+                if($currencyId == Null){
+                    throw new \Exception("Currency not found with iso code : " . $validated['currency']);
+                }
                 // Their rules for know if product is valid
                 self::rulesLiveTotal($product, 
                     [
@@ -374,7 +496,7 @@ class OrderService
                         "product" => $product,
                         "delivery_id" => $validated["delivery_id"] ?? null,
                         "declination_id" => $validated["declination_id"] ?? null,
-                        "currency_id" => $validated["currency_id"],
+                        "currency_id" => $currencyId,
                         "quantity" => $validated["quantity"]
                     ]),
                     "code" => 202
@@ -389,6 +511,7 @@ class OrderService
     }
 
     public static function calculateTotalLive(Request $request){
+
             $validated = $request->validate([
                 'order_products' => 'required|array',
                 'order_products.*.price' => 'numeric|min:0',
@@ -396,17 +519,25 @@ class OrderService
                 'order_products.*.delivery_id' => 'nullable|exists:deliveries,id',
                 'order_products.*.declination_id' => 'nullable|exists:declinations,id',
                 "order_products.*.quantity" => "required|integer|min:1",
-                'currency_id' => 'required|exists:currencies,id',
+                'currency_id' => 'required|exists:currencies,iso_code',
                 'delivery_id' => 'nullable|exists:deliveries,id',
                 'coupon' => 'nullable|string|exists:coupons,code'
             ]);
-
+            
         try{
+            
+            $currencyId = Currency::findByIsoCode($validated['currency_id'])->id;
+
+            if($currencyId == Null){
+                throw new \Exception("Currency not found with iso code : " . $validated['currency']);
+            }
+
             foreach ($validated['order_products'] as $productData) {
                 $product = Product::findBySlug($productData['product']);
 
                 // Their rules for know if product is valid
                 self::rulesLiveTotal($product, $productData);
+
             }
             
             $total =  OrderCalculatorService::calculateTotal(
@@ -419,7 +550,7 @@ class OrderService
                         'discount' => $product["discount"] ?? null,
                     ];
                 })->toArray(),
-                $validated['currency_id'], 
+                $currencyId, 
                 0,
                 $validated['coupon'] ?? ""
             );
@@ -441,9 +572,10 @@ class OrderService
 
     private static function rulesLiveTotal(Product $product, array $productData){
         if(isset($productData["declination_id"])){
+
             self::checkDeclination($product, [
                 "id" => $product->id, 
-                "declination_id" => $productData["declination_id"]
+                "declination" => $productData["declination_id"]
             ]);
         }
         
@@ -455,6 +587,29 @@ class OrderService
         }
     
         self::validateProductAvailability($product, $productData);
+    }
+
+
+    private static function findOrCreatePaymentMethod(string|int $identifier): string
+    {
+        // Si c'est un nombre → rechercher par id
+        if (is_numeric($identifier)) {
+            $paymentMethod = PaymentMethod::findOrFail($identifier);
+            return $paymentMethod->id;
+        }
+
+        // Si c'est une string → vérifier longueur minimale
+        if (strlen(trim($identifier)) < 2) {
+            throw new \InvalidArgumentException('Le nom du moyen de paiement doit contenir au moins 2 caractères.');
+        }
+
+        // Trouver ou créer par name
+        $paymentMethod = PaymentMethod::firstOrCreate(
+            ['name' => trim($identifier)],
+            ['description' => null]
+        );
+
+        return $paymentMethod->id;
     }
 
 }

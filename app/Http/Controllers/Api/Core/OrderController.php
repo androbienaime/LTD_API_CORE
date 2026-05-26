@@ -11,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Core\OrderRequest;
 use App\Services\OrderCalculatorService;
 use App\Http\Resources\Core\OrderResource;
+use App\Models\Core\Shop;
 use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
@@ -18,10 +19,13 @@ class OrderController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Shop $shop)
     {
-        return OrderResource::collection(Order::all());
-
+        return OrderResource::collection(
+            Order::where('shop_id', $shop->id)
+                ->latest()
+                ->paginate(20)
+        );
     }
 
     /**
@@ -35,9 +39,9 @@ class OrderController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(OrderRequest $request)
+    public function store(OrderRequest $request, Shop $shop)
     {
-       $response = OrderService::createOrder($request);
+       $response = OrderService::createOrder($request, $shop);
 
        return response()->json($response, $response['code'] ?? 404);
     }
@@ -62,7 +66,7 @@ class OrderController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(OrderRequest $request, Order $order)
+    public function update(OrderRequest $request, Shop $shop, Order $order)
     {
         if(!$order){
             return response()->json([
@@ -98,7 +102,7 @@ class OrderController extends Controller
         );
     }
 
-    public function changeState(Order $order, Request $request)
+    public function changeState(Shop $shop, Order $order, Request $request)
     {
 
         return response()->json(OrderService::changeState($order, $request));

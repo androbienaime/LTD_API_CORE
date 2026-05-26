@@ -42,7 +42,7 @@ class CustomerRequest extends FormRequest
             'middle_name' => 'nullable|string|max:255',
             'identity_number_id' => 'nullable|integer|exists:identity_numbers,id',
             'date_of_birth' => 'nullable|date',
-            'shop_id' => 'nullable|integer|exists:shops,id',
+            'shop' => 'nullable|integer|exists:shops,id',
             'merchant_id' => 'nullable|integer|exists:merchants,id',
             'addresses' => 'nullable|array',
             // 'addresses.*' => 'integer|exists:addresses_customers,id',

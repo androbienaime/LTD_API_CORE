@@ -18,7 +18,7 @@ class DeclinationResource extends JsonResource
     {
         return [
             "id" => $this->id,
-            "price" => $this->price,
+            "price" => number_format((float) $this->price, 2, '.', ''),
             "sku" => $this->reference,
             "quantity" => $this->quantity,
             "declination_images" => $this->getMedia()->map(function($media){

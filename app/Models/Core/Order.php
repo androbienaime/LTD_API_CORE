@@ -41,6 +41,7 @@ class Order extends Model
         "order_amount",
         "user_id",
         "customer_id",
+        "shop_id",
         "advance_order_id",
         "total_amount_order",
         "reference_order",
@@ -55,7 +56,9 @@ class Order extends Model
         "has_delivery",
         "balance",
         "total_discount",
-        "account_id"
+        "account_id",
+        "payment_method_id",
+        "has_advance"
     ];
 
     protected $casts = [
@@ -85,12 +88,25 @@ class Order extends Model
         return $this->belongsTo(Delivery::class);
     }
 
+    public function shops(){
+        return $this->belongsTo(Shop::class);
+    }
+
     public function payments() : hasMany
     {
         return $this->hasMany(PaymentMethod::class);
     }
     public function isPaid(){
         return $this->payments()->where("status", "completed")->exist();
+    }
+
+    public function advanceOrders(): HasMany
+    {
+        return $this->hasMany(AdvanceOrder::class);
+    }
+
+    public function payment_method(){
+        return $this->belongsTo(PaymentMethod::class);
     }
 
     public function process() : self
@@ -103,8 +119,8 @@ class Order extends Model
         }
     }
 
-    public function ship(string $trackingNumber = null) : self{
-        $this->state->transition(new ShipOrderTransition($this, $trackingNumber));
+    public function ship(string $trackingNumber = null, ?string $account_shipped_id = null) : self{
+        $this->state->transition(new ShipOrderTransition($this, $trackingNumber, $account_shipped_id));
         return $this;
     }
 
@@ -140,7 +156,9 @@ class Order extends Model
     }
 
 
-    public function changeStatus(string $newState, ?string $reason = null, ?string $trackingNumber = null): void
+    public function changeStatus(string $newState, ?string $reason = null, 
+        ?string $trackingNumber = null, ?string $account_shipped_id = null, 
+        ?string $account_delivered_id = null, ?int $currency_id = null): void
     {
         if ($this->state->canTransitionTo($newState)) {
             switch ($newState) {
@@ -151,9 +169,14 @@ class Order extends Model
                         $this->process()->save();
                     break;
                 case ShippedState::class:
-                        $this->ship($trackingNumber);
+                        $this->ship($trackingNumber, $account_shipped_id)->save();
                     break;
                 case DeliveredState::class:
+                        if($currency_id == null){
+                            throw new \Exception("Currency not found : " . $currency_id);
+                        }
+                        $this->completeToTotalAmount($currency_id, PaymentMethod::findOrCreatePaymentMethod('cash'), $account_delivered_id);
+                        $this->updateStateData(["account_delivered_id" => $account_delivered_id]);
                         $this->state->transitionTo(new DeliveredState($this));
                     break;
                 case ReturnedState::class:
@@ -167,6 +190,29 @@ class Order extends Model
             }
         } else {
             throw new \Exception("Transition non autorisée");
+        }
+    }
+
+
+    /**
+     * Complète order_amount pour atteindre exactement total_amount_order,
+     * puis enregistre le montant ajouté dans un advance.
+     */
+    public function completeToTotalAmount(int $currencyId, int $paymentMethod, string $accountId): void
+    {
+        // Montant strictement nécessaire pour atteindre total_amount_order
+        $newOrderAmount = $this->total_amount_order - $this->order_amount;
+
+        if ($newOrderAmount > 0) {
+            $this->increment('order_amount', $newOrderAmount);
+            $this->decrement('balance', $newOrderAmount);
+
+            $this->advanceOrders()->create([
+                'amount_order_advance' => $newOrderAmount,
+                'currency_id'          => $currencyId,
+                'payment_method_id'    => $paymentMethod,
+                'account_id'           => $accountId,
+            ]);
         }
     }
 

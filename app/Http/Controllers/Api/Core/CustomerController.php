@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Core\CustomerRequest;
 use App\Http\Resources\Core\CustomerResource;
+use App\Models\Core\Shop;
 use Exception;
 
 class CustomerController extends Controller
@@ -31,7 +32,7 @@ class CustomerController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(CustomerRequest $request)
+    public function store(CustomerRequest $request, Shop $shop)
     {
         try{
 
@@ -51,7 +52,7 @@ class CustomerController extends Controller
                 'middle_name' => $validatedData['middle_name'] ?? null,
                 'identityNumber_id' => $validatedData["identity_number_id"] ?? null,
                 'date_of_birth' => $validatedData['date_of_birth'] ?? null,
-                'shop_id' =>$validatedData['shop_id'] ?? null,
+                'shop_id' => $shop->id ?? null,
                 'merchant_id' => $validatedData['merchant_id'] ?? null
             ]);
 
@@ -97,7 +98,7 @@ class CustomerController extends Controller
     /**
  * Update the specified resource in storage.
  */
-    public function update(CustomerRequest $request, Customer $customer)
+    public function update(CustomerRequest $request, Customer $customer, Shop $shop)
     {
         try {
             DB::beginTransaction();
@@ -115,7 +116,7 @@ class CustomerController extends Controller
                 'middle_name' => $validatedData['middle_name'] ?? $customer->middle_name,
                 'identityNumber_id' => $validatedData['identity_number_id'] ?? $customer->identityNumber_id,
                 'date_of_birth' => $validatedData['date_of_birth'] ?? $customer->date_of_birth,
-                'shop_id' => $validatedData['shop_id'] ?? $customer->shop_id,
+                'shop_id' => $shop->id ?? $customer->shop_id,
                 'merchant_id' => $validatedData['merchant_id'] ?? $customer->merchant_id,
             ]);
 

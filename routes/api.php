@@ -204,7 +204,7 @@ Route::middleware('auth.account')->group(function () {
 
             Route::post('/{order}/state', [OrderController::class, 'changeState'])
                 ->name('shop.order-state.change')
-                ->middleware('shop.permission:order.update_status');
+                ->middleware('shop.permission:order.update');
 
             // Calculs live (pas de permission stricte, juste auth)
             Route::post('/calculate-sub-total', [OrderController::class, 'calculateSubTotalLive'])

@@ -24,7 +24,6 @@ class EditShop extends EditRecord
      */
     protected function afterSave(): void
     {
-        dd($this->record);
         /** @var ShopMembershipService $service */
         $service = app(ShopMembershipService::class);
 

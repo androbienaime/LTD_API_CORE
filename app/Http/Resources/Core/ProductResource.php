@@ -22,7 +22,7 @@ class ProductResource extends JsonResource
             "slug" => $this->slug,
             "article" => $this->article,
             "description" => $this->description,
-            "price" => $this->price,
+            "price" => number_format((float) $this->price, 2, '.', ''),
             "coverImage" => $this->getFirstMedia() ? $this->getFirstMedia()->getFullUrl("thumb") : null,
             'images' => $this->getMedia()->map(function($media){
                 return $media->getFullUrl();

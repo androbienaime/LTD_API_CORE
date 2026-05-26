@@ -26,7 +26,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $perPage = $request->get('per_page', 10); // Nombre d'éléments par page (par défaut 15)
-
+            
         return ProductResource::collection(
             Product::getAvailableProductsWithMedia()->paginate($perPage)
         );    

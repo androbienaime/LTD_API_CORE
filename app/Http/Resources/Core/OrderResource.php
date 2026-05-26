@@ -17,8 +17,8 @@ class OrderResource extends JsonResource
     {
         return [
             "id" => $this->id,
-            "order_amount" => $this->order_amount,
-            "total_amount_order" => $this->total_amount_order,
+            "order_amount" => number_format((float) $this->order_amount, 2, '.', ''),
+            "total_amount_order" => number_format((float) $this->total_amount_order, 2, '.', ''),
             "order_products" => OrderProductResource::collection($this->orderProducts) ,
             "customer" => new CustomerResource($this->customer),
             "reference_order" => $this->reference_order,
@@ -31,8 +31,8 @@ class OrderResource extends JsonResource
             "coupon" => $this->coupon,
             "delivery" => new DeliveryResource($this->delivery),
             "has_delivery" => $this->has_delivery,
-            "balance" => $this->balance,
-            "total_discount" => $this->total_discount,
+            "balance" => number_format((float) $this->balance, 2, '.', ''),
+            "total_discount" => number_format((float) $this->total_discount, 2, '.', ''),
         ];
     }
 }

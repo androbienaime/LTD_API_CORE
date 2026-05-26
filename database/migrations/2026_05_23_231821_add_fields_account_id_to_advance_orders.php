@@ -11,11 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('payment_methods', function (Blueprint $table) {
-            $table->id();
-            $table->string("name")->unique();
-            $table->string("description")->nullable();
-            $table->timestamps();
+        Schema::table('advance_orders', function (Blueprint $table) {
+            $table->foreignId("account_id")->nullable(true)->constrained();
+
         });
     }
 
@@ -24,6 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('payment_methods');
+        Schema::table('advance_orders', function (Blueprint $table) {
+            $table->dropForeign("account_id");
+        });
     }
 };

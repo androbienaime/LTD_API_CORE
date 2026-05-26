@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class OrderAdvance extends Model
+class AdvanceOrder extends Model
 {
     use HasFactory;
 
@@ -14,7 +14,8 @@ class OrderAdvance extends Model
         'order_id',
         'amount_order_advance',   // montant de cette avance
         'currency_id',
-        'payment_method',         // 'cash' | 'card'
+        'payment_method_id',         // 'cash' | 'card'
+        "account_id",
     ];
 
     protected $casts = [

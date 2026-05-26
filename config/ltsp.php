@@ -11,7 +11,7 @@
                 'DeliveryResource',
                 'MerchantResource',
                 'PaymentMethodResource',
-                'OrderStatusResource',
+                // 'OrderStatusResource',
                 'TrackingResource',
                 'CouponResource',
                 'CarrierResource',
