@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Core\{
     CurrencyController,
     ProductController,
     CustomerController,
+    OfferController,
     ShopMemberController,
 };
 use App\Http\Controllers\Api\Location\{
@@ -148,6 +149,18 @@ Route::middleware('auth.account')->group(function () {
             Route::delete('/{product}', [ProductController::class, 'destroy'])
                 ->name('shop.products.destroy')
                 ->middleware('shop.permission:product.delete');
+
+            Route::post('{product:id}/offers', [OfferController::class, 'store']);
+
+        });
+
+        Route::prefix('offers')->group(function () {
+            // Vérifier le statut d'une offre par token (clients)
+            Route::get('{token}/status', [OfferController::class, 'status']);
+        
+            // Accepter ou rejeter une offre (admin/vendeur — protégez cette route)
+            Route::patch('{offer}/respond', [OfferController::class, 'respond'])
+                ->middleware('auth:sanctum'); // ou votre middleware admin
         });
 
         // ── Catégories ────────────────────────────────────────────────────

@@ -178,6 +178,12 @@ class OrderRequest extends FormRequest
                 'nullable',
                 'exists:deliveries,id',
             ],
+
+            'order_products.*.offer_price' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
         ];
     }
 

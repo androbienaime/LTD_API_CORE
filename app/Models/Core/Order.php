@@ -58,7 +58,8 @@ class Order extends Model
         "total_discount",
         "account_id",
         "payment_method_id",
-        "has_advance"
+        "has_advance",
+        "note",
     ];
 
     protected $casts = [
