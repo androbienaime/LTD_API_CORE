@@ -32,6 +32,16 @@ class ProductController extends Controller
         );    
     }
 
+    public function productByShop(Request $request, Shop $shop)
+    {
+        $perPage = $request->get('per_page', 10); // Nombre d'éléments par page (par défaut 15)
+            
+        return ProductResource::collection(
+            Product::getAvailableProductsWithMedia()->paginate($perPage)->where('shop_id', $shop->id)
+        );    
+    }
+
+
     /**
      * Show the form for creating a new resource.
      */

@@ -127,7 +127,7 @@ Route::middleware('auth.account')->group(function () {
         // ── Produits ──────────────────────────────────────────────────────
         Route::prefix('products')->group(function () {
 
-            Route::get('/',            [ProductController::class, 'index'])
+            Route::get('/',            [ProductController::class, 'productByShop'])
                 ->name('shop.products.index')
                 ->middleware('shop.permission:product.view');
 

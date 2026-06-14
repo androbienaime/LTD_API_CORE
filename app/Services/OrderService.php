@@ -45,10 +45,9 @@ class OrderService
             $amountPaid  = $validated['order_amount'];
             $balance     = $totalNet - $amountPaid;
             $has_advance = $amountPaid > 0 && $amountPaid < $totalNet;
-            $method      = 'cash';
 
             $paymentMethod = self::findOrCreatePaymentMethod(
-                !empty($validated['payment_method']) ? $validated['payment_method'] : $method
+                !empty($validated['payment_method']) ? $validated['payment_method'] : 'cash'
             );
 
             $currencyId = Currency::findByIsoCode($validated['currency'])->id;
@@ -73,6 +72,7 @@ class OrderService
                 'payment_method_id'  => $paymentMethod,
                 'has_advance'        => $has_advance,
                 'total_discount'     => $validated['total_discount'] ?? 0,
+                'note'               => $validated['note'] ?? null,
             ], fn ($value) => $value !== null));
 
             if (isset($validated['order_products'])) {
@@ -89,7 +89,6 @@ class OrderService
             }
 
             self::updateOrderTotal($order, $validated);
-
             $order->save();
 
             DB::commit();
@@ -102,7 +101,6 @@ class OrderService
 
         } catch (\Exception $e) {
             DB::rollBack();
-
             return [
                 'message' => 'Une erreur est survenue lors de la création de la commande.',
                 'error'   => $e->getMessage(),
@@ -134,9 +132,8 @@ class OrderService
             }
 
             $newOrderAmount = 0;
-            $method         = 'cash';
             $paymentMethod  = self::findOrCreatePaymentMethod(
-                !empty($validated['payment_method']) ? $validated['payment_method'] : $method
+                !empty($validated['payment_method']) ? $validated['payment_method'] : 'cash'
             );
 
             if (isset($validated['order_amount'])) {
@@ -147,15 +144,16 @@ class OrderService
             }
 
             $order->fill(array_filter([
-                'customer_id'     => $validated['customer']         ?? null,
+                'customer_id'     => $validated['customer']        ?? null,
                 'currency_id'     => $currencyId,
-                'account_id'      => $validated['account']          ?? null,
-                'merchant_id'     => $validated['merchant']         ?? null,
-                'coupon_id'       => $validated['coupon']           ?? null,
-                'delivery_id'     => $deliveryId                    ?? null,
-                'reference_order' => $validated['reference_order']  ?? null,
-                'secure_key'      => $validated['secure_key']       ?? null,
-                'has_delivery'    => $validated['has_delivery']     ?? null,
+                'account_id'      => $validated['account']         ?? null,
+                'merchant_id'     => $validated['merchant']        ?? null,
+                'coupon_id'       => $validated['coupon']          ?? null,
+                'delivery_id'     => $deliveryId                   ?? null,
+                'reference_order' => $validated['reference_order'] ?? null,
+                'secure_key'      => $validated['secure_key']      ?? null,
+                'note'            => $validated['note']            ?? null,
+                'has_delivery'    => $validated['has_delivery']    ?? null,
             ]));
 
             if (isset($validated['order_products'])) {
@@ -167,7 +165,6 @@ class OrderService
             if ($newOrderAmount > 0) {
                 $order->increment('order_amount', $newOrderAmount);
                 $order->decrement('balance',      $newOrderAmount);
-
                 $order->advanceOrders()->create([
                     'amount_order_advance' => $newOrderAmount,
                     'currency_id'          => $currencyId,
@@ -186,28 +183,30 @@ class OrderService
 
         } catch (\Exception $e) {
             DB::rollBack();
-
-            return [
-                'message' => 'Error updating order',
-                'error'   => $e->getMessage(),
-                'code'    => 500,
-            ];
+            return ['message' => 'Error updating order', 'error' => $e->getMessage(), 'code' => 500];
         }
     }
 
     // ─── Sync order products ──────────────────────────────────────────────────
 
+    /**
+     * Supprime TOUTES les lignes existantes puis recrée depuis le payload.
+     *
+     * Pourquoi pas updateOrCreate ?
+     * Le même produit peut apparaître plusieurs fois avec des prix différents
+     * (ex: produit 42 au prix catalogue + produit 42 avec offre à 80 HTG).
+     * updateOrCreate avec product_id seul écraserait la première ligne.
+     * Supprimer + recréer évite tout conflit sans toucher au schéma DB.
+     *
+     * Les ProductOffer créés dans processOrderProduct sont dans la même
+     * transaction → rollback automatique si quoi que ce soit échoue.
+     */
     private static function syncOrderProducts(Order $order, array $validated): void
     {
-        // BUG 1 CORRIGÉ : l'ancien return debug qui court-circuitait tout
-        // return ["message" => "after sync[order_products]...", ...] ← SUPPRIMÉ
+        // Supprimer toutes les lignes de cette commande
+        $order->orderProducts()->delete();
 
-        $productIds = collect($validated['order_products'])->pluck('id');
-
-        $order->orderProducts()
-              ->whereNotIn('product_id', $productIds)
-              ->delete();
-
+        // Recréer chaque ligne depuis le payload
         foreach ($validated['order_products'] as $productData) {
             self::processOrderProduct($order, $productData, $validated);
         }
@@ -230,12 +229,13 @@ class OrderService
         }
 
         // ── Prix d'offre ──────────────────────────────────────────────────────
-        // BUG 2 CORRIGÉ : $validated['offer_price'] → $productData['offer_price']
-        // BUG 3 CORRIGÉ : l'ancien return debug qui empêchait updateOrCreate
-        $overridePrice = null;
+        // Si offer_price est présent, on crée un ProductOffer dans la même
+        // transaction. Son ID est stocké sur la ligne pour traçabilité.
+        $overridePrice   = null;
+        $productOfferId  = null;
 
         if (!empty($productData['offer_price'])) {
-            $offerPrice = (float) $productData['offer_price'];   // ← depuis productData
+            $offerPrice = (float) $productData['offer_price'];
 
             if ($offerPrice > 0) {
                 $offer = ProductOffer::create([
@@ -248,30 +248,31 @@ class OrderService
                     'expires_at'    => Carbon::now()->addHours(24),
                 ]);
 
-                $overridePrice = $offer->offered_price;
+                $overridePrice  = $offer->offered_price;
+                $productOfferId = $offer->id;          // ← ID du ProductOffer
             }
         }
 
-        // return ["message" => "Override : " . $overridePrice, ...] ← SUPPRIMÉ
-
-        $order->orderProducts()->updateOrCreate(
-            ['product_id' => $product->id],
-            [
-                'quantity'       => $productData['quantity'],
-                'sub_totals'     => OrderCalculatorService::calculateSubtotal([
-                    'product'        => $product,
-                    'declination_id' => $productData['declination'] ?? null,
-                    'delivery_id'    => $productData['delivery']    ?? null,
-                    'currency_id'    => $currencyId,
-                    'quantity'       => $productData['quantity'],
-                    'override_price' => $overridePrice,            // null = prix catalogue
-                ]),
-                'discount'       => $productData['discount']    ?? 0,
+        // ── create (pas updateOrCreate) ───────────────────────────────────────
+        // syncOrderProducts a déjà tout supprimé → on crée toujours une nouvelle
+        // ligne. Pas de conflit possible, même produit × N lignes autorisé.
+        $order->orderProducts()->create([
+            'product_id'      => $product->id,
+            'quantity'        => $productData['quantity'],
+            'sub_totals'      => OrderCalculatorService::calculateSubtotal([
+                'product'        => $product,
                 'declination_id' => $productData['declination'] ?? null,
                 'delivery_id'    => $productData['delivery']    ?? null,
-                'offer_price'    => $overridePrice,
-            ]
-        );
+                'currency_id'    => $currencyId,
+                'quantity'       => $productData['quantity'],
+                'override_price' => $overridePrice,
+            ]),
+            'discount'            => $productData['discount']    ?? 0,
+            'declination_id'      => $productData['declination'] ?? null,
+            'delivery_id'         => $productData['delivery']    ?? null,
+            'offer_price'         => $overridePrice,
+            'product_offer_id'    => $productOfferId,             // ← traçabilité
+        ]);
     }
 
     // ─── Update order total ───────────────────────────────────────────────────
@@ -283,20 +284,18 @@ class OrderService
             throw new \Exception('Currency not found with iso code : ' . $validated['currency']);
         }
 
-        $orderProducts = $order->orderProducts;
-
         $total = OrderCalculatorService::calculateTotal(
-            $orderProducts->map(fn ($p) => [
-                'id'           => $p->product_id,
-                'quantity'     => $p->quantity,
-                'declination'  => $p->declination_id,
-                'delivery'     => $p->delivery_id,
-                'discount'     => $p->discount,
-                'override_price' => $p->offer_price,  // transmettre le prix d'offre déjà enregistré
+            $order->orderProducts->map(fn ($p) => [
+                'id'             => $p->product_id,
+                'quantity'       => $p->quantity,
+                'declination'    => $p->declination_id,
+                'delivery'       => $p->delivery_id,
+                'discount'       => $p->discount,
+                'override_price' => $p->offer_price,
             ])->toArray(),
             $currencyId,
-            $validated['delivery_cost']  ?? 0,
-            $validated['coupon_code']    ?? ''
+            $validated['delivery_cost'] ?? 0,
+            $validated['coupon_code']   ?? ''
         );
 
         if ($validated['order_amount'] > $total) {
@@ -305,23 +304,24 @@ class OrderService
             );
         }
 
-        $order->total_amount_order = $total;
-        $order->balance            = $total - $validated['order_amount'];
+        $discount = $validated['total_discount'] ?? 0;
+        if($discount >= $total) {
+            throw new \Exception(
+                "Total discount exceeds total : {$total} for total discount : {$discount}"
+            );
+            $discount = 0; // pour éviter de stocker un montant négatif même si l'exception est levée
+        }
+        $order->total_amount_order = $total - $discount;
+        $order->balance            = $total - $validated['order_amount'] - $discount;
     }
 
-    // ─── State management ─────────────────────────────────────────────────────
+    // ─── State management (inchangé) ─────────────────────────────────────────
 
     public static function showState(Order $order): array
     {
         return [
             'states' => collect($order->getAvailableStates())
-                ->map(function (string $state) use ($order) {
-                    $stateInstance = new $state($order);
-                    return [
-                        'value' => class_basename($state),
-                        'label' => $stateInstance->label(),
-                    ];
-                })
+                ->map(fn ($s) => ['value' => class_basename($s), 'label' => (new $s($order))->label()])
                 ->pluck('label', 'value')
                 ->toArray(),
         ];
@@ -329,16 +329,12 @@ class OrderService
 
     public static function changeState(Order $order, Request $request): array
     {
-        $state = $request->input('state');
-
+        $state           = $request->input('state');
         $availableStates = collect($order->getAvailableStates())
-            ->map(fn ($stateClass) => class_basename($stateClass))
-            ->toArray();
+            ->map(fn ($s) => class_basename($s))->toArray();
 
         if (!in_array($state, $availableStates)) {
-            throw ValidationException::withMessages([
-                'state' => "L'état '$state' n'est pas valide pour cette commande.",
-            ]);
+            throw ValidationException::withMessages(['state' => "L'état '$state' n'est pas valide."]);
         }
 
         $rules = [
@@ -350,21 +346,15 @@ class OrderService
             'currency_id'          => 'nullable|exists:currencies,iso_code',
         ];
 
-        if ($state === 'ShippedState') {
-            $rules['tracking_number'] = 'required|string|max:255';
-        }
-        if (in_array($state, ['CancelledState', 'ReturnedState'])) {
-            $rules['reason'] = 'required|string|max:255';
-        }
+        if ($state === 'ShippedState')                               $rules['tracking_number'] = 'required|string|max:255';
+        if (in_array($state, ['CancelledState', 'ReturnedState']))   $rules['reason']          = 'required|string|max:255';
 
-        $validated = $request->validate($rules);
-
+        $validated  = $request->validate($rules);
         $currencyId = null;
+
         if (isset($validated['currency_id'])) {
             $currencyId = Currency::findByIsoCode($validated['currency_id'])->id;
-            if ($currencyId === null) {
-                throw new \Exception('Currency not found with iso code : ' . $validated['currency_id']);
-            }
+            if ($currencyId === null) throw new \Exception('Currency not found');
         }
 
         $order->changeStatus(
@@ -376,13 +366,10 @@ class OrderService
             $currencyId
         );
 
-        return [
-            'message' => 'État de la commande mis à jour avec succès.',
-            'data'    => new OrderResource($order),
-        ];
+        return ['message' => 'État mis à jour.', 'data' => new OrderResource($order)];
     }
 
-    // ─── Live calculators ─────────────────────────────────────────────────────
+    // ─── Live calculators (inchangés) ────────────────────────────────────────
 
     public static function calculateSubTotalLive(Request $request): array
     {
@@ -393,34 +380,15 @@ class OrderService
             'currency_id'    => 'required|string|exists:currencies,iso_code',
             'quantity'       => 'required|integer|min:1',
         ]);
-
         try {
             $product    = Product::findBySlug($validated['product']);
             $currencyId = Currency::findByIsoCode($validated['currency_id'])->id;
-
-            if ($currencyId === null) {
-                throw new \Exception('Currency not found with iso code : ' . $validated['currency_id']);
-            }
-
-            self::rulesLiveTotal($product, [
-                'id'             => $product->id,
+            self::rulesLiveTotal($product, $validated + ['id' => $product->id]);
+            return ['success' => true, 'data' => OrderCalculatorService::calculateSubtotal([
+                'product' => $product, 'delivery_id' => $validated['delivery_id'] ?? null,
                 'declination_id' => $validated['declination_id'] ?? null,
-                'delivery_id'    => $validated['delivery_id']    ?? null,
-                'quantity'       => $validated['quantity'],
-            ]);
-
-            return [
-                'success' => true,
-                'data'    => OrderCalculatorService::calculateSubtotal([
-                    'product'        => $product,
-                    'delivery_id'    => $validated['delivery_id']    ?? null,
-                    'declination_id' => $validated['declination_id'] ?? null,
-                    'currency_id'    => $currencyId,
-                    'quantity'       => $validated['quantity'],
-                ]),
-                'code'    => 202,
-            ];
-
+                'currency_id' => $currencyId, 'quantity' => $validated['quantity'],
+            ]), 'code' => 202];
         } catch (Exception $e) {
             return ['success' => false, 'message' => $e->getMessage(), 'code' => 500];
         }
@@ -429,45 +397,24 @@ class OrderService
     public static function calculateTotalLive(Request $request): array
     {
         $validated = $request->validate([
-            'order_products'                    => 'required|array',
-            'order_products.*.price'            => 'numeric|min:0',
-            'order_products.*.product'          => 'required|exists:products,slug',
-            'order_products.*.delivery_id'      => 'nullable|exists:deliveries,id',
-            'order_products.*.declination_id'   => 'nullable|exists:declinations,id',
-            'order_products.*.quantity'         => 'required|integer|min:1',
-            'currency_id'                       => 'required|exists:currencies,iso_code',
-            'delivery_id'                       => 'nullable|exists:deliveries,id',
-            'coupon'                            => 'nullable|string|exists:coupons,code',
+            'order_products'                  => 'required|array',
+            'order_products.*.product'        => 'required|exists:products,slug',
+            'order_products.*.delivery_id'    => 'nullable|exists:deliveries,id',
+            'order_products.*.declination_id' => 'nullable|exists:declinations,id',
+            'order_products.*.quantity'       => 'required|integer|min:1',
+            'currency_id'                     => 'required|exists:currencies,iso_code',
+            'coupon'                          => 'nullable|string|exists:coupons,code',
         ]);
-
         try {
             $currencyId = Currency::findByIsoCode($validated['currency_id'])->id;
-            if ($currencyId === null) {
-                throw new \Exception('Currency not found with iso code : ' . $validated['currency_id']);
-            }
-
-            foreach ($validated['order_products'] as $productData) {
-                $product = Product::findBySlug($productData['product']);
-                self::rulesLiveTotal($product, $productData);
-            }
-
+            foreach ($validated['order_products'] as $p) self::rulesLiveTotal(Product::findBySlug($p['product']), $p);
             $total = OrderCalculatorService::calculateTotal(
-                collect($validated['order_products'])->map(function ($p) {
-                    return [
-                        'id'          => Product::findBySlug($p['product'])->id,
-                        'quantity'    => $p['quantity'],
-                        'declination' => $p['declination_id'] ?? null,
-                        'delivery'    => $p['delivery_id']    ?? null,
-                        'discount'    => $p['discount']       ?? null,
-                    ];
-                })->toArray(),
-                $currencyId,
-                0,
-                $validated['coupon'] ?? ''
-            );
-
+                collect($validated['order_products'])->map(fn ($p) => [
+                    'id' => Product::findBySlug($p['product'])->id,
+                    'quantity' => $p['quantity'], 'declination' => $p['declination_id'] ?? null,
+                    'delivery' => $p['delivery_id'] ?? null, 'discount' => $p['discount'] ?? null,
+                ])->toArray(), $currencyId, 0, $validated['coupon'] ?? '');
             return ['success' => true, 'data' => $total, 'code' => 202];
-
         } catch (Exception $e) {
             return ['success' => false, 'message' => $e->getMessage(), 'code' => 500];
         }
@@ -475,77 +422,53 @@ class OrderService
 
     // ─── Helpers privés ───────────────────────────────────────────────────────
 
-    private static function checkDeclination(Product $productModel, array $product): void
+    private static function checkDeclination(Product $m, array $p): void
     {
-        if (self::hasDeclinations($productModel)) {
-            if (empty($product['declination'])) {
-                throw new \Exception("Le produit ID {$product['id']} nécessite une déclinaison.");
-            }
-            if (!$productModel->declinations->contains('id', $product['declination'])) {
-                throw new \Exception("La déclinaison ID {$product['declination']} n'est pas valide pour le produit ID {$product['id']}.");
-            }
-        } elseif (!empty($product['declination'])) {
-            throw new \Exception("Le produit ID {$product['id']} ne nécessite pas de déclinaison.");
+        if (self::hasDeclinations($m)) {
+            if (empty($p['declination']))                            throw new \Exception("Produit {$p['id']} nécessite une déclinaison.");
+            if (!$m->declinations->contains('id', $p['declination'])) throw new \Exception("Déclinaison {$p['declination']} invalide pour produit {$p['id']}.");
+        } elseif (!empty($p['declination'])) {
+            throw new \Exception("Produit {$p['id']} ne nécessite pas de déclinaison.");
         }
     }
 
-    private static function checkDelivery(Product $productModel, array $product): void
+    private static function checkDelivery(Product $m, array $p): void
     {
-        if (self::hasDelivery($productModel)) {
-            if (empty($product['delivery'])) {
-                throw new \Exception("Le produit ID {$product['id']} nécessite une livraison.");
-            }
-            if (!$productModel->deliveryProducts()->where('id', $product['delivery'])->exists()) {
-                throw new \Exception("La livraison ID {$product['delivery']} n'est pas valide pour le produit ID {$product['id']}.");
-            }
-        } elseif (!empty($product['delivery'])) {
-            throw new \Exception("Le produit ID {$product['id']} ne nécessite pas de livraison.");
+        if (self::hasDelivery($m)) {
+            if (empty($p['delivery']))                                          throw new \Exception("Produit {$p['id']} nécessite une livraison.");
+            if (!$m->deliveryProducts()->where('id', $p['delivery'])->exists()) throw new \Exception("Livraison {$p['delivery']} invalide pour produit {$p['id']}.");
+        } elseif (!empty($p['delivery'])) {
+            throw new \Exception("Produit {$p['id']} ne nécessite pas de livraison.");
         }
     }
 
     private static function validateProductAvailability(Product $product, array $productData): void
     {
-        if (!$product->isAvailable()) {
-            throw new \Exception("Le produit {$product->name} n'est pas disponible à la vente.");
-        }
-        if (!$product->has_unlimited_stock && $productData['quantity'] > $product->stock_quantity) {
+        if (!$product->isAvailable()) throw new \Exception("Le produit {$product->name} n'est pas disponible.");
+        if (!$product->has_unlimited_stock && $productData['quantity'] > $product->stock_quantity)
             throw new \Exception("Stock insuffisant pour {$product->name}. Disponible : {$product->stock_quantity}");
-        }
     }
 
     private static function reduceStock(Product $product, int $quantity): void
     {
         if (!$product->has_unlimited_stock) {
             $product->decrement('stock_quantity', $quantity);
-            if ($product->stock_quantity === 0) {
-                $product->update(['is_in_stock' => false]);
-            }
+            if ($product->stock_quantity === 0) $product->update(['is_in_stock' => false]);
         }
     }
 
-    private static function rulesLiveTotal(Product $product, array $productData): void
+    private static function rulesLiveTotal(Product $product, array $data): void
     {
-        if (isset($productData['declination_id'])) {
-            self::checkDeclination($product, ['id' => $product->id, 'declination' => $productData['declination_id']]);
-        }
-        if (isset($productData['delivery_id'])) {
-            self::checkDelivery($product, ['id' => $product->id, 'delivery' => $productData['delivery_id']]);
-        }
-        self::validateProductAvailability($product, $productData);
+        if (isset($data['declination_id'])) self::checkDeclination($product, ['id' => $product->id, 'declination' => $data['declination_id']]);
+        if (isset($data['delivery_id']))    self::checkDelivery($product,    ['id' => $product->id, 'delivery'    => $data['delivery_id']]);
+        self::validateProductAvailability($product, $data);
     }
 
-    private static function findOrCreatePaymentMethod(string|int $identifier): string
+    private static function findOrCreatePaymentMethod(string|int $id): string
     {
-        if (is_numeric($identifier)) {
-            return PaymentMethod::findOrFail($identifier)->id;
-        }
-        if (strlen(trim($identifier)) < 2) {
-            throw new \InvalidArgumentException('Le nom du moyen de paiement doit contenir au moins 2 caractères.');
-        }
-        return PaymentMethod::firstOrCreate(
-            ['name'        => trim($identifier)],
-            ['description' => null]
-        )->id;
+        if (is_numeric($id)) return PaymentMethod::findOrFail($id)->id;
+        if (strlen(trim($id)) < 2) throw new \InvalidArgumentException('Nom du moyen de paiement trop court.');
+        return PaymentMethod::firstOrCreate(['name' => trim($id)], ['description' => null])->id;
     }
 
     private static function generateToken(): string

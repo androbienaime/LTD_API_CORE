@@ -99,7 +99,7 @@ class ProductDetails
                                 Select::make('currency_id')
                                     ->label(__("Currency"))
                                     ->relationship("currency", "iso_code", modifyQueryUsing: fn(Builder $query) => $query->where("is_active", true))
-                                    ->default(1)
+                                    ->default(3)
                                     ->afterStateUpdated(function(callable $set, callable $get) {
                                         $set('prefix_field', Currency::where("id", $get("currency_id"))->first()->symbol);
                                     })

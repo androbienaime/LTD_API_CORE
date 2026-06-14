@@ -99,6 +99,7 @@ class OrderRequest extends FormRequest
                 'nullable',
                 'numeric',
                 'min:0',
+                // 'lte:total_amount_order',
             ],
 
             /*
@@ -117,6 +118,10 @@ class OrderRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:255',
+            ],
+            'note' => [
+                'nullable',
+                'string',
             ],
 
             'state_data' => [
@@ -182,7 +187,7 @@ class OrderRequest extends FormRequest
             'order_products.*.offer_price' => [
                 'nullable',
                 'numeric',
-                'min:0',
+                'min:1',
             ],
         ];
     }
