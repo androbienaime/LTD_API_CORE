@@ -226,6 +226,13 @@ class ShopResource extends Resource
 
                                 $set('memberships', $members);
                             })
+                            ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                                // Met à jour le type du compte associé
+                                \App\Models\Core\Account::where('id', $data['account_id'])
+                                    ->update(['type' => 'merchant']);
+
+                                return $data;
+                            })
                             ->columns(2)
                             ->columnSpan("full"),
                     ]),

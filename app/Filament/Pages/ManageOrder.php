@@ -18,8 +18,28 @@ class ManageOrder extends SettingsPage
     public function form(Form $form): Form
     {
         return $form
-            ->schema([
-                Forms\Components\TextInput::make("percentValuesProcessingOrder")
-            ]);
+        ->schema([
+            Forms\Components\TextInput::make("percentValuesProcessingOrder"),
+
+            Forms\Components\Select::make("keyReferencesMethod")
+                ->options([
+                    "increment" => __("Increment"),
+                    "random"    => __("Random"),
+                ])
+                ->default("increment")
+                ->label(__("Key References Method"))
+                ->live(), // ← déclenche le re-render des champs dépendants
+
+            Forms\Components\TextInput::make("keyReferences")
+                ->label(__("Key References"))
+                ->numeric(
+                    fn (Forms\Get $get) => $get("keyReferencesMethod") === "increment"
+                )
+                ->rules(
+                    fn (Forms\Get $get) => $get("keyReferencesMethod") === "increment"
+                        ? ["nullable", "integer", "min:0"]
+                        : ["nullable", "string"]
+                ),
+        ]);
     }
 }
